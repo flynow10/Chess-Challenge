@@ -19,7 +19,8 @@ namespace ChessChallenge.Application
         {
             Human,
             MyBot,
-            EvilBot
+            EvilBot,
+            ExtraEvilBot
         }
 
         // Game state
@@ -52,13 +53,16 @@ namespace ChessChallenge.Application
         // Other
         readonly BoardUI boardUI;
         readonly MoveGenerator moveGenerator;
-        readonly int tokenCount;
+        readonly int myBotTokenCount;
+        readonly int otherBotTokenCount;
         readonly StringBuilder pgns;
 
         public ChallengeController()
         {
             Log($"Launching Chess-Challenge version {Settings.Version}");
-            tokenCount = GetTokenCount();
+            myBotTokenCount = GetMyBotTokenCount();
+            otherBotTokenCount = GetOtherBotTokenCount();
+            
             Warmer.Warm();
 
             rng = new Random();
@@ -211,14 +215,25 @@ namespace ChessChallenge.Application
             {
                 PlayerType.MyBot => new ChessPlayer(new MyBot(), type, GameDurationMilliseconds),
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
+                PlayerType.ExtraEvilBot => new ChessPlayer(new ExtraEvilBot(), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };
         }
 
-        static int GetTokenCount()
+        static int GetMyBotTokenCount()
         {
             string path = Path.Combine(Directory.GetCurrentDirectory(), "src", "My Bot", "MyBot.cs");
-
+            return GetTokenCount(path);
+        }
+        
+        static int GetOtherBotTokenCount()
+        {
+            string path = Path.Combine(Directory.GetCurrentDirectory(), "src", "Extra Evil Bot", "ExtraEvilBot.cs");
+            return GetTokenCount(path);
+        }
+        
+        static int GetTokenCount(string path)
+        {
             using StreamReader reader = new(path);
             string txt = reader.ReadToEnd();
             return TokenCounter.CountTokens(txt);
@@ -388,7 +403,8 @@ namespace ChessChallenge.Application
         }
         public void DrawOverlay()
         {
-            BotBrainCapacityUI.Draw(tokenCount, MaxTokenCount);
+            BotBrainCapacityUI.Draw("My Bot", myBotTokenCount, MaxTokenCount, 2, 0);
+            BotBrainCapacityUI.Draw("Other Bot", otherBotTokenCount, MaxTokenCount, 2, 1);
             MenuUI.DrawButtons(this);
             MatchStatsUI.DrawMatchStats(this);
         }
