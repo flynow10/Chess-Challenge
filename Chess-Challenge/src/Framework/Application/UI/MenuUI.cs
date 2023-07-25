@@ -7,6 +7,8 @@ namespace ChessChallenge.Application
 {
     public static class MenuUI
     {
+        public static ChallengeController.PlayerType Bot1Type = ChallengeController.PlayerType.MyBot;
+        public static ChallengeController.PlayerType Bot2Type = ChallengeController.PlayerType.MyBot;
         public static void DrawButtons(ChallengeController controller)
         {
             Vector2 buttonPos = UIHelper.Scale(new Vector2(260, 210));
@@ -21,18 +23,11 @@ namespace ChessChallenge.Application
                 var blackType = !controller.HumanWasWhiteLastGame ? ChallengeController.PlayerType.MyBot : ChallengeController.PlayerType.Human;
                 controller.StartNewGame(whiteType, blackType);
             }
-            if (NextButtonInRow("MyBot vs MyBot", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot, ChallengeController.PlayerType.MyBot);
-            }
-            if (NextButtonInRow("MyBot vs EvilBot", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot, ChallengeController.PlayerType.EvilBot);
-            }
-            if(NextButtonInRow("MyBot vs OtherBot", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot, ChallengeController.PlayerType.ExtraEvilBot);
-            }
+            
+            UIHelper.DrawText("Bot vs Bot Match", buttonPos, UIHelper.ScaleInt(32), 1, Color.WHITE, UIHelper.AlignH.Centre);
+            buttonPos.Y += spacing;
+            
+            DrawBotPicker(controller, ref buttonPos, spacing, buttonSize);
 
             // Page buttons
             buttonPos.Y += breakSpacing;
@@ -79,6 +74,52 @@ namespace ChessChallenge.Application
                 bool pressed = UIHelper.Button(name, pos, size);
                 pos.Y += spacingY;
                 return pressed;
+            }
+        }
+
+        public static void DrawBotPicker(ChallengeController challengeController, ref Vector2 pos, float spacingY, Vector2 size)
+        {
+            Vector2 botPos = pos with {X = pos.X - size.X/2};
+            ChallengeController.PlayerType bot1 = DrawBotPicker(1, botPos);
+            botPos.X += size.X;
+            ChallengeController.PlayerType bot2 = DrawBotPicker(2, botPos);
+            pos.Y += spacingY;
+
+            if(UIHelper.Button("Start", pos, size))
+            {
+                challengeController.StartNewBotMatch(bot1, bot2);
+            }
+            pos.Y += spacingY;
+
+            ChallengeController.PlayerType DrawBotPicker(int botNumber, Vector2 pos)
+            {
+                ref ChallengeController.PlayerType botType = ref Bot1Type;
+                if(botNumber == 2)
+                {
+                    botType = ref Bot2Type;
+                }
+
+                if(botNumber != 1 && botNumber != 2)
+                {
+                    throw new Exception("Invalid bot number!");
+                }
+                if(UIHelper.Button(botType.ToString(), pos, size with {X = size.X * ((float)4/5)}))
+                {
+                    botType = NextBotType(botType);
+                }
+                return botType;
+            }
+
+            ChallengeController.PlayerType NextBotType(ChallengeController.PlayerType currentType)
+            {
+                ChallengeController.PlayerType nextType = currentType;
+                while(nextType == currentType || nextType == ChallengeController.PlayerType.Human)
+                {
+                    ChallengeController.PlayerType[] Arr = Enum.GetValues<ChallengeController.PlayerType>();
+                    int index = Array.IndexOf(Arr, nextType) + 1;
+                    nextType = Arr.Length == index ? Arr[0] : Arr[index];
+                }
+                return nextType;
             }
         }
     }

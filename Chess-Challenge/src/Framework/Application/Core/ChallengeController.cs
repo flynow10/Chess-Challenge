@@ -2,6 +2,7 @@
 using ChessChallenge.Example;
 using Raylib_cs;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.ExceptionServices;
@@ -20,7 +21,8 @@ namespace ChessChallenge.Application
             Human,
             MyBot,
             EvilBot,
-            ExtraEvilBot
+            ExtraEvilBot,
+            MyBotV1
         }
 
         // Game state
@@ -29,7 +31,7 @@ namespace ChessChallenge.Application
         bool isPlaying;
         Board board;
         public ChessPlayer PlayerWhite { get; private set; }
-        public ChessPlayer PlayerBlack {get;private set;}
+        public ChessPlayer PlayerBlack { get; private set; }
 
         float lastMoveMadeTime;
         bool isWaitingToPlayMove;
@@ -41,7 +43,7 @@ namespace ChessChallenge.Application
         readonly string[] botMatchStartFens;
         int botMatchGameIndex;
         public BotMatchStats BotStatsA { get; private set; }
-        public BotMatchStats BotStatsB {get;private set;}
+        public BotMatchStats BotStatsB { get; private set; }
         bool botAPlaysWhite;
 
 
@@ -53,16 +55,14 @@ namespace ChessChallenge.Application
         // Other
         readonly BoardUI boardUI;
         readonly MoveGenerator moveGenerator;
-        readonly int myBotTokenCount;
-        readonly int otherBotTokenCount;
+        readonly Dictionary<PlayerType, int> tokenCounts = new();
         readonly StringBuilder pgns;
 
         public ChallengeController()
         {
             Log($"Launching Chess-Challenge version {Settings.Version}");
-            myBotTokenCount = GetMyBotTokenCount();
-            otherBotTokenCount = GetOtherBotTokenCount();
-            
+            GetAllTokenCounts(ref tokenCounts);
+
             Warmer.Warm();
 
             rng = new Random();
@@ -73,7 +73,8 @@ namespace ChessChallenge.Application
 
             BotStatsA = new BotMatchStats("IBot");
             BotStatsB = new BotMatchStats("IBot");
-            botMatchStartFens = FileHelper.ReadResourceFile("Fens.txt").Split('\n').Where(fen => fen.Length > 0).ToArray();
+            botMatchStartFens = FileHelper.ReadResourceFile("Fens.txt").Split('\n').Where(fen => fen.Length > 0)
+                .ToArray();
             botTaskWaitHandle = new AutoResetEvent(false);
 
             StartNewGame(PlayerType.Human, PlayerType.MyBot);
@@ -94,6 +95,7 @@ namespace ChessChallenge.Application
                 botTaskWaitHandle = new AutoResetEvent(false);
                 Task.Factory.StartNew(BotThinkerThread, TaskCreationOptions.LongRunning);
             }
+
             // Board Setup
             board = new Board();
             bool isGameWithHuman = whiteType is PlayerType.Human || blackType is PlayerType.Human;
@@ -135,6 +137,7 @@ namespace ChessChallenge.Application
                         OnMoveChosen(move);
                     }
                 }
+
                 // Terminate if no longer playing this game
                 if (threadID != gameID)
                 {
@@ -161,9 +164,9 @@ namespace ChessChallenge.Application
                 hasBotTaskException = true;
                 botExInfo = ExceptionDispatchInfo.Capture(e);
             }
+
             return Move.NullMove;
         }
-
 
 
         void NotifyTurnToMove()
@@ -216,6 +219,7 @@ namespace ChessChallenge.Application
                 PlayerType.MyBot => new ChessPlayer(new MyBot(), type, GameDurationMilliseconds),
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
                 PlayerType.ExtraEvilBot => new ChessPlayer(new ExtraEvilBot(), type, GameDurationMilliseconds),
+                PlayerType.MyBotV1 => new ChessPlayer(new Version1.MyBot(), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };
         }
@@ -225,13 +229,54 @@ namespace ChessChallenge.Application
             string path = Path.Combine(Directory.GetCurrentDirectory(), "src", "My Bot", "MyBot.cs");
             return GetTokenCount(path);
         }
-        
-        static int GetOtherBotTokenCount()
+
+        static int GetExtraEvilBotTokenCount()
         {
             string path = Path.Combine(Directory.GetCurrentDirectory(), "src", "Extra Evil Bot", "ExtraEvilBot.cs");
             return GetTokenCount(path);
         }
-        
+
+        static int GetVersionTokenCount(int version)
+        {
+            string path = Path.Combine(Directory.GetCurrentDirectory(), "src", "Versions", "MyBotV" + version,
+                "MyBot.cs");
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException();
+            }
+
+            return GetTokenCount(path);
+        }
+
+        static void GetAllTokenCounts(ref Dictionary<PlayerType, int> tokenCounts)
+        {
+            foreach (PlayerType playerType in Enum.GetValues<PlayerType>())
+            {
+                if (playerType == PlayerType.Human || playerType == PlayerType.EvilBot)
+                {
+                    tokenCounts[playerType] = 0;
+                    continue;
+                }
+                if (playerType == PlayerType.MyBot)
+                {
+                    tokenCounts[playerType] = GetMyBotTokenCount();
+                }
+                else if (playerType == PlayerType.ExtraEvilBot)
+                {
+                    tokenCounts[playerType] = GetExtraEvilBotTokenCount();
+                }
+                else
+                {
+                    tokenCounts[playerType] = GetVersionTokenCount(int.Parse(playerType.ToString().Substring(6)));
+                }
+            }
+            foreach (KeyValuePair<PlayerType, int> kvp in tokenCounts)
+            {
+                //textBox3.Text += ("Key = {0}, Value = {1}", kvp.Key, kvp.Value);
+                Console.WriteLine("Key = {0}, Value = {1}", kvp.Key, kvp.Value);
+            }
+        }
+
         static int GetTokenCount(string path)
         {
             using StreamReader reader = new(path);
@@ -259,7 +304,9 @@ namespace ChessChallenge.Application
                 string moveName = MoveUtility.GetMoveNameUCI(chosenMove);
                 string log = $"Illegal move: {moveName} in position: {FenUtility.CurrentFen(board)}";
                 Log(log, true, ConsoleColor.Red);
-                GameResult result = PlayerToMove == PlayerWhite ? GameResult.WhiteIllegalMove : GameResult.BlackIllegalMove;
+                GameResult result = PlayerToMove == PlayerWhite
+                    ? GameResult.WhiteIllegalMove
+                    : GameResult.BlackIllegalMove;
                 EndGame(result);
             }
         }
@@ -299,7 +346,8 @@ namespace ChessChallenge.Application
                     Log("Game Over: " + result, false, ConsoleColor.Blue);
                 }
 
-                string pgn = PGNCreator.CreatePGN(board, result, GetPlayerName(PlayerWhite), GetPlayerName(PlayerBlack));
+                string pgn = PGNCreator.CreatePGN(board, result, GetPlayerName(PlayerWhite),
+                    GetPlayerName(PlayerBlack));
                 pgns.AppendLine(pgn);
 
                 // If 2 bots playing each other, start next game automatically.
@@ -318,7 +366,6 @@ namespace ChessChallenge.Application
                         autoNextTimer.Elapsed += (s, e) => AutoStartNextBotMatchGame(originalGameID, autoNextTimer);
                         autoNextTimer.AutoReset = false;
                         autoNextTimer.Start();
-
                     }
                     else if (autoStartNextBotMatch)
                     {
@@ -334,6 +381,7 @@ namespace ChessChallenge.Application
             {
                 StartNewGame(PlayerBlack.PlayerType, PlayerWhite.PlayerType);
             }
+
             timer.Close();
         }
 
@@ -360,7 +408,8 @@ namespace ChessChallenge.Application
                 {
                     stats.NumLosses++;
                     stats.NumTimeouts += (result is GameResult.WhiteTimeout or GameResult.BlackTimeout) ? 1 : 0;
-                    stats.NumIllegalMoves += (result is GameResult.WhiteIllegalMove or GameResult.BlackIllegalMove) ? 1 : 0;
+                    stats.NumIllegalMoves +=
+                        (result is GameResult.WhiteIllegalMove or GameResult.BlackIllegalMove) ? 1 : 0;
                 }
             }
         }
@@ -401,10 +450,28 @@ namespace ChessChallenge.Application
             string nameB = GetPlayerName(PlayerBlack);
             boardUI.DrawPlayerNames(nameW, nameB, PlayerWhite.TimeRemainingMs, PlayerBlack.TimeRemainingMs, isPlaying);
         }
+
         public void DrawOverlay()
         {
-            BotBrainCapacityUI.Draw("My Bot", myBotTokenCount, MaxTokenCount, 2, 0);
-            BotBrainCapacityUI.Draw("Other Bot", otherBotTokenCount, MaxTokenCount, 2, 1);
+            ChessPlayer firstPlayer = (int)PlayerWhite.PlayerType < (int)PlayerBlack.PlayerType ? PlayerWhite : PlayerBlack;
+
+            ChessPlayer secondPlayer = firstPlayer.PlayerType == PlayerWhite.PlayerType ? PlayerBlack : PlayerWhite;
+            int firstTokens = tokenCounts[firstPlayer.PlayerType];
+            int secondTokens = tokenCounts[secondPlayer.PlayerType];
+            int totalCapacityBars = (firstTokens == 0 ? 0 : 1) + (secondTokens == 0 || PlayerWhite.PlayerType == PlayerBlack.PlayerType ? 0 : 1);
+            int drawnCapacityBars = 0;
+            if (firstTokens != 0)
+            {
+                BotBrainCapacityUI.Draw(GetPlayerName(firstPlayer), firstTokens, MaxTokenCount, totalCapacityBars,
+                    drawnCapacityBars++);
+            }
+
+            if (secondTokens != 0 && PlayerWhite.PlayerType != PlayerBlack.PlayerType)
+            {
+                BotBrainCapacityUI.Draw(GetPlayerName(secondPlayer), secondTokens, MaxTokenCount, totalCapacityBars,
+                    drawnCapacityBars);
+            }
+
             MenuUI.DrawButtons(this);
             MatchStatsUI.DrawMatchStats(this);
         }
@@ -423,6 +490,7 @@ namespace ChessChallenge.Application
                 nameA += " (A)";
                 nameB += " (B)";
             }
+
             BotStatsA = new BotMatchStats(nameA);
             BotStatsB = new BotMatchStats(nameB);
             botAPlaysWhite = true;
