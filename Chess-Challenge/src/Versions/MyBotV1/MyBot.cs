@@ -27,8 +27,6 @@ public class MyBot : IChessBot
 
         var best = scores.MaxBy(score => score.Item1);
         var bestMove = best.Item2;
-        Console.WriteLine("Move #" + board.PlyCount + ", Best move: " + bestMove.StartSquare.Name +
-                          bestMove.TargetSquare.Name + ", Eval: " + best.Item1);
         return bestMove;
     }
 

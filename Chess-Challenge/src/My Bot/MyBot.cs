@@ -12,30 +12,6 @@ public class MyBot : IChessBot
     // Centi pawn values for: null, Pawn, Knight, Bishop, Rook, Queen, King
     int[] centiPawnValues = { 0, 100, 300, 320, 500, 900, 0 };
 
-    int[] kingOpeningTable =
-    {
-        -30,-40,-40,-50,-50,-40,-40,-30,
-        -30,-40,-40,-50,-50,-40,-40,-30,
-        -30,-40,-40,-50,-50,-40,-40,-30,
-        -30,-40,-40,-50,-50,-40,-40,-30,
-        -20,-30,-30,-40,-40,-30,-30,-20,
-        -10,-20,-20,-20,-20,-20,-20,-10,
-        20, 20,  0,  0,  0,  0, 20, 20,
-        20, 30, 10,  0,  0, 10, 30, 20
-    };
-
-    int[] kingEndingTable =
-    {
-        -50,-40,-30,-20,-20,-30,-40,-50,
-        -30,-20,-10,  0,  0,-10,-20,-30,
-        -30,-10, 20, 30, 30, 20,-10,-30,
-        -30,-10, 30, 40, 40, 30,-10,-30,
-        -30,-10, 30, 40, 40, 30,-10,-30,
-        -30,-10, 20, 30, 30, 20,-10,-30,
-        -30,-30,  0,  0,  0,  0,-30,-30,
-        -50,-30,-30,-30,-30,-30,-30,-50
-    };
-
     public Move Think(Board board, Timer timer)
     {
         List<(double, Move)> scores = new();
@@ -104,27 +80,7 @@ public class MyBot : IChessBot
         var blackPieces = board.GetAllPieceLists().Where(l => !l.IsWhitePieceList);
         double whiteEval = CentiPawnCount(whitePieces);
         double blackEval = CentiPawnCount(blackPieces);
-        whiteEval += GetKingPieceTableEval(board, true);
-        blackEval += GetKingPieceTableEval(board, false);
         return whiteEval - blackEval;
-    }
-
-    public double GetKingPieceTableEval(Board board, bool white)
-    {
-        var phase = GetGamePhase(board);
-        var openingScore = ReadPieceTable(kingOpeningTable, board.GetKingSquare(white), white);
-        var endingScore = ReadPieceTable(kingEndingTable, board.GetKingSquare(white), white);
-        return (openingScore * (256 - phase) + endingScore * phase)/256;
-    }
-
-    public double ReadPieceTable(int[] table, Square square, bool white)
-    {
-        var index = square.Index;
-        if(white)
-        {
-            index = (7 - square.Rank) * 8 + square.File;
-        }
-        return table[index];
     }
 
     public double GetGamePhase(Board board)

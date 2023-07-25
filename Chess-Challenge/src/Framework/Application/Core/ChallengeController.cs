@@ -257,6 +257,7 @@ namespace ChessChallenge.Application
                     tokenCounts[playerType] = 0;
                     continue;
                 }
+
                 if (playerType == PlayerType.MyBot)
                 {
                     tokenCounts[playerType] = GetMyBotTokenCount();
@@ -270,10 +271,14 @@ namespace ChessChallenge.Application
                     tokenCounts[playerType] = GetVersionTokenCount(int.Parse(playerType.ToString().Substring(6)));
                 }
             }
-            foreach (KeyValuePair<PlayerType, int> kvp in tokenCounts)
+
+            Log("Bot Brain Capacity List", false, ConsoleColor.Blue);
+            foreach (KeyValuePair<PlayerType, int> bot in tokenCounts)
             {
-                //textBox3.Text += ("Key = {0}, Value = {1}", kvp.Key, kvp.Value);
-                Console.WriteLine("Key = {0}, Value = {1}", kvp.Key, kvp.Value);
+                if (bot.Value != 0)
+                {
+                    Log(string.Format("Bot: {0}, Brain Capacity {1}", bot.Key, bot.Value));
+                }
             }
         }
 
@@ -453,12 +458,14 @@ namespace ChessChallenge.Application
 
         public void DrawOverlay()
         {
-            ChessPlayer firstPlayer = (int)PlayerWhite.PlayerType < (int)PlayerBlack.PlayerType ? PlayerWhite : PlayerBlack;
+            ChessPlayer firstPlayer =
+                (int)PlayerWhite.PlayerType < (int)PlayerBlack.PlayerType ? PlayerWhite : PlayerBlack;
 
             ChessPlayer secondPlayer = firstPlayer.PlayerType == PlayerWhite.PlayerType ? PlayerBlack : PlayerWhite;
             int firstTokens = tokenCounts[firstPlayer.PlayerType];
             int secondTokens = tokenCounts[secondPlayer.PlayerType];
-            int totalCapacityBars = (firstTokens == 0 ? 0 : 1) + (secondTokens == 0 || PlayerWhite.PlayerType == PlayerBlack.PlayerType ? 0 : 1);
+            int totalCapacityBars = (firstTokens == 0 ? 0 : 1) +
+                                    (secondTokens == 0 || PlayerWhite.PlayerType == PlayerBlack.PlayerType ? 0 : 1);
             int drawnCapacityBars = 0;
             if (firstTokens != 0)
             {
