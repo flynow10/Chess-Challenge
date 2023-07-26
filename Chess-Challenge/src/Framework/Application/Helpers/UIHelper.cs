@@ -135,5 +135,45 @@ namespace ChessChallenge.Application
                 Raylib.UnloadShader(shader);
             }
         }
+
+        public class InputBox
+        {
+            public string placeholder;
+            public string value = "";
+            public InputBox(string placeholder)
+            {
+                this.placeholder = placeholder;
+            }
+
+            public void Draw(Vector2 centre, Vector2 size)
+            {
+                Rectangle rec = new(centre.X - size.X / 2, centre.Y - size.Y / 2, size.X, size.Y);
+
+                Color normalCol = new(40, 40, 40, 255);
+
+                bool mouseOver = MouseInRect(rec);
+                bool pressed = mouseOver && Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT);
+                bool pressedThisFrame = pressed && Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT);
+                string text = value == "" ? placeholder : value;
+                if(pressedThisFrame)
+                {
+                    value = Raylib.GetClipboardText_();
+                }
+                Raylib.DrawRectangleRec(rec, normalCol);
+                Color textCol = mouseOver ? Color.WHITE : new Color(180, 180, 180, 255);
+                int fontSize = ScaleInt(32);
+
+                string clippedText = text;
+                int maxChars = text.Length;
+                Vector2 textSize = Raylib.MeasureTextEx(font, clippedText, fontSize, 1);
+                while(textSize.X > (size.X * ((float)19/20)))
+                {
+                    maxChars --;
+                    clippedText = text.Substring(0, maxChars) + "...";
+                    textSize = Raylib.MeasureTextEx(font, clippedText, fontSize, 1);
+                }
+                DrawText(clippedText, centre with {X = centre.X - size.X*((float)9/20)}, fontSize, 1, textCol);
+            }
+        }
     }
 }

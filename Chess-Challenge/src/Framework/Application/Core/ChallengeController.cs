@@ -46,6 +46,7 @@ namespace ChessChallenge.Application
         public BotMatchStats BotStatsA { get; private set; }
         public BotMatchStats BotStatsB { get; private set; }
         bool botAPlaysWhite;
+        bool startedFromCustomFen = false;
 
 
         // Bot task
@@ -58,6 +59,7 @@ namespace ChessChallenge.Application
         readonly MoveGenerator moveGenerator;
         readonly Dictionary<PlayerType, int> tokenCounts = new();
         readonly StringBuilder pgns;
+        public readonly UIHelper.InputBox FenInputBox = new("Click to Paste Fen String");
 
         public ChallengeController()
         {
@@ -81,7 +83,7 @@ namespace ChessChallenge.Application
             StartNewGame(PlayerType.Human, PlayerType.MyBot);
         }
 
-        public void StartNewGame(PlayerType whiteType, PlayerType blackType)
+        public void StartNewGame(PlayerType whiteType, PlayerType blackType, bool autoStarted = false)
         {
             // End any ongoing game
             EndGame(GameResult.DrawByArbiter, log: false, autoStartNextBotMatch: false);
@@ -99,9 +101,16 @@ namespace ChessChallenge.Application
 
             // Board Setup
             board = new Board();
-            bool isGameWithHuman = whiteType is PlayerType.Human || blackType is PlayerType.Human;
-            int fenIndex = isGameWithHuman ? 0 : botMatchGameIndex / 2;
-            board.LoadPosition(botMatchStartFens[fenIndex]);
+            if(autoStarted || FenInputBox.value == "")
+            {
+                bool isGameWithHuman = whiteType is PlayerType.Human || blackType is PlayerType.Human;
+                int fenIndex = isGameWithHuman ? 0 : botMatchGameIndex / 2;
+                board.LoadPosition(botMatchStartFens[fenIndex]);
+                startedFromCustomFen = false;
+            } else {
+                board.LoadPosition(FenInputBox.value);
+                startedFromCustomFen = true;
+            }
 
             // Player Setup
             PlayerWhite = CreatePlayer(whiteType);
@@ -358,7 +367,7 @@ namespace ChessChallenge.Application
                 pgns.AppendLine(pgn);
 
                 // If 2 bots playing each other, start next game automatically.
-                if (PlayerWhite.IsBot && PlayerBlack.IsBot)
+                if (PlayerWhite.IsBot && PlayerBlack.IsBot && !startedFromCustomFen)
                 {
                     UpdateBotMatchStats(result);
                     botMatchGameIndex++;
