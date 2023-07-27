@@ -1,6 +1,8 @@
 ﻿using System;
 using ChessChallenge.API;
 
+namespace ChessChallenge.Version3;
+
 public class MyBot : IChessBot
 {
     // Centi pawn values for: null, Pawn, Knight, Bishop, Rook, Queen, King
@@ -30,8 +32,8 @@ public class MyBot : IChessBot
             if(Math.Abs(eval) >= 50000 - 50)
                 break;
         }
-        Console.WriteLine("Move #" + board.PlyCount + ", Best move: " + best.StartSquare.Name +
-                      best.TargetSquare.Name + ", Eval: " + eval + ", Depth: " + depth);
+//        Console.WriteLine("Move #" + board.PlyCount + ", Best move: " + best.StartSquare.Name +
+//                      best.TargetSquare.Name + ", Eval: " + eval + ", Depth: " + depth);
         return best;
     }
 
@@ -110,18 +112,4 @@ public class MyBot : IChessBot
 
         return (midEval * phase + endEval*(24-phase))/24;
     }
-
-//    int centerManhattanDistance(Square square)
-//    {
-//        int file = square.File;
-//        int rank = square.Rank;
-//        file ^= (file-4) >> 8;
-//        rank ^= (rank-4) >> 8;
-//        return (file + rank) & 7;
-//    }
-//
-//    int manhattanDistance(Square square1, Square square2)
-//    {
-//        return Math.Abs(square1.Rank - square2.Rank) + Math.Abs(square1.File - square2.File);
-//    }
 }
