@@ -28,7 +28,7 @@ namespace ChessChallenge.Application
         }
 
         // Game state
-        Random rng;
+        readonly Random rng;
         int gameID;
         bool isPlaying;
         Board board;
@@ -58,7 +58,7 @@ namespace ChessChallenge.Application
         // Other
         readonly BoardUI boardUI;
         readonly MoveGenerator moveGenerator;
-        readonly Dictionary<PlayerType, int> tokenCounts = new();
+        readonly Dictionary<PlayerType, TokenCount> tokenCounts = new();
         readonly StringBuilder pgns;
         public readonly UIHelper.InputBox FenInputBox = new("Click to Paste Fen String");
 
@@ -66,7 +66,6 @@ namespace ChessChallenge.Application
         {
             Log($"Launching Chess-Challenge version {Settings.Version}");
             GetAllTokenCounts(ref tokenCounts);
-
             Warmer.Warm();
 
             rng = new Random();
@@ -163,7 +162,7 @@ namespace ChessChallenge.Application
             API.Board botBoard = new(board);
             try
             {
-                API.Timer timer = new(PlayerToMove.TimeRemainingMs);
+                API.Timer timer = new(PlayerToMove.TimeRemainingMs, PlayerNotOnMove.TimeRemainingMs, GameDurationMilliseconds);
                 API.Move move = PlayerToMove.Bot.Think(botBoard, timer);
                 return new Move(move.RawValue);
             }
@@ -235,19 +234,19 @@ namespace ChessChallenge.Application
             };
         }
 
-        static int GetMyBotTokenCount()
+        static TokenCount GetMyBotTokenCount()
         {
             string path = Path.Combine(Directory.GetCurrentDirectory(), "src", "My Bot", "MyBot.cs");
             return GetTokenCount(path);
         }
 
-        static int GetExtraEvilBotTokenCount()
+        static TokenCount GetExtraEvilBotTokenCount()
         {
             string path = Path.Combine(Directory.GetCurrentDirectory(), "src", "Extra Evil Bot", "ExtraEvilBot.cs");
             return GetTokenCount(path);
         }
 
-        static int GetVersionTokenCount(int version)
+        static TokenCount GetVersionTokenCount(int version)
         {
             string path = Path.Combine(Directory.GetCurrentDirectory(), "src", "Versions", "MyBotV" + version,
                 "MyBot.cs");
@@ -259,13 +258,13 @@ namespace ChessChallenge.Application
             return GetTokenCount(path);
         }
 
-        static void GetAllTokenCounts(ref Dictionary<PlayerType, int> tokenCounts)
+        static void GetAllTokenCounts(ref Dictionary<PlayerType, TokenCount> tokenCounts)
         {
             foreach (PlayerType playerType in Enum.GetValues<PlayerType>())
             {
                 if (playerType == PlayerType.Human || playerType == PlayerType.EvilBot)
                 {
-                    tokenCounts[playerType] = 0;
+                    tokenCounts[playerType] = new TokenCount(0,0);
                     continue;
                 }
 
@@ -284,16 +283,16 @@ namespace ChessChallenge.Application
             }
 
             Log("Bot Brain Capacity List", false, ConsoleColor.Blue);
-            foreach (KeyValuePair<PlayerType, int> bot in tokenCounts)
+            foreach (KeyValuePair<PlayerType, TokenCount> bot in tokenCounts)
             {
-                if (bot.Value != 0)
+                if (bot.Value.total != 0)
                 {
-                    Log(string.Format("Bot: {0}, Brain Capacity {1}", bot.Key, bot.Value));
+                    Log(string.Format("Bot: {0}, Brain Capacity: {1}, ({2} with debugs)", bot.Key, bot.Value.total - bot.Value.debug, bot.Value.total));
                 }
             }
         }
 
-        static int GetTokenCount(string path)
+        static TokenCount GetTokenCount(string path)
         {
             using StreamReader reader = new(path);
             string txt = reader.ReadToEnd();
@@ -473,18 +472,18 @@ namespace ChessChallenge.Application
                 (int)PlayerWhite.PlayerType < (int)PlayerBlack.PlayerType ? PlayerWhite : PlayerBlack;
 
             ChessPlayer secondPlayer = firstPlayer.PlayerType == PlayerWhite.PlayerType ? PlayerBlack : PlayerWhite;
-            int firstTokens = tokenCounts[firstPlayer.PlayerType];
-            int secondTokens = tokenCounts[secondPlayer.PlayerType];
-            int totalCapacityBars = (firstTokens == 0 ? 0 : 1) +
-                                    (secondTokens == 0 || PlayerWhite.PlayerType == PlayerBlack.PlayerType ? 0 : 1);
+            TokenCount firstTokens = tokenCounts[firstPlayer.PlayerType];
+            TokenCount secondTokens = tokenCounts[secondPlayer.PlayerType];
+            int totalCapacityBars = (firstTokens.total == 0 ? 0 : 1) +
+                                    (secondTokens.total == 0 || PlayerWhite.PlayerType == PlayerBlack.PlayerType ? 0 : 1);
             int drawnCapacityBars = 0;
-            if (firstTokens != 0)
+            if (firstTokens.total != 0)
             {
                 BotBrainCapacityUI.Draw(GetPlayerName(firstPlayer), firstTokens, MaxTokenCount, totalCapacityBars,
                     drawnCapacityBars++);
             }
 
-            if (secondTokens != 0 && PlayerWhite.PlayerType != PlayerBlack.PlayerType)
+            if (secondTokens.total != 0 && PlayerWhite.PlayerType != PlayerBlack.PlayerType)
             {
                 BotBrainCapacityUI.Draw(GetPlayerName(secondPlayer), secondTokens, MaxTokenCount, totalCapacityBars,
                     drawnCapacityBars);
@@ -518,6 +517,8 @@ namespace ChessChallenge.Application
 
 
         ChessPlayer PlayerToMove => board.IsWhiteToMove ? PlayerWhite : PlayerBlack;
+        ChessPlayer PlayerNotOnMove => board.IsWhiteToMove ? PlayerBlack : PlayerWhite;
+
         public int TotalGameCount => botMatchStartFens.Length * 2;
         public int CurrGameNumber => Math.Min(TotalGameCount, botMatchGameIndex + 1);
         public string AllPGNs => pgns.ToString();

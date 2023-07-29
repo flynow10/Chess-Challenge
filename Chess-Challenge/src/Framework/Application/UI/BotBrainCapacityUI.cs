@@ -10,8 +10,9 @@ namespace ChessChallenge.Application
         static readonly Color red = new(219, 9, 9, 255);
         static readonly Color background = new Color(40, 40, 40, 255);
 
-        public static void Draw(string botName, int numTokens, int tokenLimit, int count, int index)
+        public static void Draw(string botName, TokenCount tokenCount, int tokenLimit, int count, int index)
         {
+            int activeTokenCount = tokenCount.total - tokenCount.debug;
 
             int screenWidth = Raylib.GetScreenWidth();
             int screenHeight = Raylib.GetScreenHeight();
@@ -22,7 +23,7 @@ namespace ChessChallenge.Application
             // Bg
             Raylib.DrawRectangle(barOffset, screenHeight - height, barWidth, height, background);
             // Bar
-            double t = (double)numTokens / tokenLimit;
+            double t = (double)activeTokenCount / tokenLimit;
 
             Color col;
             if (t <= 0.7)
@@ -36,10 +37,14 @@ namespace ChessChallenge.Application
             Raylib.DrawRectangle(barOffset, screenHeight - height, (int)(barWidth * t), height, col);
 
             var textPos = new System.Numerics.Vector2(barOffset + (float)barWidth / 2, screenHeight - (float)height / 2);
-            string text = $"{botName} Capacity: {numTokens}/{tokenLimit}";
-            if (numTokens > tokenLimit)
+            string text = $"{botName} Brain Capacity: {activeTokenCount}/{tokenLimit}";
+            if (activeTokenCount > tokenLimit)
             {
                 text += " [LIMIT EXCEEDED]";
+            }
+            else if (tokenCount.debug != 0)
+            {
+                text += $"    ({tokenCount.total} with Debugs included)";
             }
             UIHelper.DrawText(text, textPos, fontSize, 1, Color.WHITE, UIHelper.AlignH.Centre);
         }
