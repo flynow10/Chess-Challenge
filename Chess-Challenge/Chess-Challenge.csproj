@@ -26,6 +26,12 @@
     <Compile Update="src\My Bot\MyBot.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
+    <Compile Update="src\Extra Evil Bot\ExtraEvilBot.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Compile>
+    <Compile Update="src\Versions\**\*.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Compile>
     <Compile Update="src\Framework\Application\UI\BotBrainCapacityUI.cs">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Compile>
