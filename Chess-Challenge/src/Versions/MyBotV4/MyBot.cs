@@ -2,7 +2,7 @@
 using System.Linq;
 using ChessChallenge.API;
 
-namespace ChessChallenge.MyBot;
+namespace ChessChallenge.Version4;
 public class MyBot : IChessBot
 {
     // Centi pawn values for: null, Pawn, Knight, Bishop, Rook, Queen, King
@@ -52,8 +52,6 @@ public class MyBot : IChessBot
 
     public Move Think(Board board, Timer timer)
     {
-        int depthReached = 0; // #DEBUG
-        int eval = 0; // #DEBUG
         Move best = Move.NullMove;
         for (int depth = 1; depth < 50; depth++)
         {
@@ -61,14 +59,9 @@ public class MyBot : IChessBot
             if (hasPassedTimeThreshold(timer))
                 break;
             best = _bestMove;
-            depthReached = depth; // #DEBUG
-            eval = currentEval; // #DEBUG
             if(Math.Abs(currentEval) >= 50000 - 50)
                 break;
         }
-
-        Console.WriteLine("Move #" + board.PlyCount + ", Best move: " + best.StartSquare.Name + best.TargetSquare.Name + //#DEBUG
-            ", Eval: " + eval + ", Depth: " + depthReached); // #DEBUG
         return best;
     }
 
