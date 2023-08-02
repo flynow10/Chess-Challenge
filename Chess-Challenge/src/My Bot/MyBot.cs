@@ -2,6 +2,7 @@
 using System.Linq;
 using ChessChallenge.API;
 
+namespace ChessChallenge.MyBot;
 public class MyBot : IChessBot
 {
     // Centi pawn values for: null, Pawn, Knight, Bishop, Rook, Queen, King
@@ -51,22 +52,23 @@ public class MyBot : IChessBot
 
     public Move Think(Board board, Timer timer)
     {
-        int depth;
+        int depthReached = 0;
         int eval = 0; // #DEBUG
-        Move best = board.GetLegalMoves()[0];
-        for (depth = 1; depth < 50; depth++)
+        Move best = Move.NullMove;
+        for (int depth = 1; depth < 50; depth++)
         {
             int currentEval = SearchPosition(board, depth, 0, -50000, 50000, timer);
             if (hasPassedTimeThreshold(timer))
                 break;
             best = _bestMove;
+            depthReached = depth;
             eval = currentEval; // #DEBUG
-            //            if(Math.Abs(currentEval) >= 50000 - 50)
-            //                break;
+            if(Math.Abs(currentEval) >= 50000 - 50)
+                break;
         }
 
         Console.WriteLine("Move #" + board.PlyCount + ", Best move: " + best.StartSquare.Name + best.TargetSquare.Name + //#DEBUG
-            ", Eval: " + eval + ", Depth: " + depth); // #DEBUG
+            ", Eval: " + eval + ", Depth: " + depthReached); // #DEBUG
         return best;
     }
 
@@ -75,64 +77,68 @@ public class MyBot : IChessBot
         ulong key = board.ZobristKey;
         _hashStack[board.PlyCount] = key;
         bool notRoot = plyFromRoot > 0;
+
         if (notRoot)
         {
-            for (int i = board.PlyCount - 2; i >= 0; i -= 2)
-            {
-                if (_hashStack[i] == _hashStack[board.PlyCount])
-                {
-                    Console.WriteLine("Duplicate position! HashStack length: " +
-                                      _hashStack.Count(x => x != 0)); //#DEBUG
+            for(int i = board.PlyCount - 2; i >= 0; i -= 2) {
+                if(_hashStack[i] == _hashStack[board.PlyCount])
                     return 0;
-                }
             }
         }
-
+        
         Transposition entry = _tt[key % entries];
-//        if(notRoot && entry.key == key && entry.depth >= depth && (entry.bound == 3 || (entry.bound == 2 && entry.eval >= beta) || (entry.bound == 1 && entry.eval <= alpha)))
-//        {// #DEBUG
-//            if(Math.Abs(entry.eval) >= 50000 - 50) //#DEBUG
-//                Console.WriteLine("Found Mate TT entry: " + entry.move + ", Eval:" + entry.eval); //#DEBUG
-//            return entry.eval;
-//        }// #DEBUG
-
-        if (depth == 0)
-            return EvaluatePosition(board);
+        if(notRoot && entry.key == key && entry.depth >= depth && (entry.bound == 3 || (entry.bound == 2 && entry.eval >= beta) || (entry.bound == 1 && entry.eval <= alpha)))
+            return entry.eval;
 
         Move[] legalMoves = board.GetLegalMoves();
-        int origAlpha = alpha;
-        int best = -50000;
+        int[] scores = new int[legalMoves.Length];
         Move bestMove = Move.NullMove;
-        foreach (Move move in legalMoves)
-        {
-            if (hasPassedTimeThreshold(timer)) return 50000;
-            board.MakeMove(move);
-            int eval = -SearchPosition(board, depth - 1, plyFromRoot + 1, -beta, -alpha, timer);
-            board.UndoMove(move);
-            if (eval > best)
-            {
-                best = eval;
-                bestMove = move;
-                if (!notRoot)
-                    _bestMove = move;
-                if (eval > alpha)
-                {
-                    alpha = eval;
-                    if (alpha >= beta) break;
-                }
-            }
-        }
 
+        for(int i = 0; i < legalMoves.Length; i++) {
+            if(legalMoves[i] == entry.move) scores[i] = 1000000;
+            else if(legalMoves[i].IsCapture) scores[i] = 100 * (int)board.GetPiece(legalMoves[i].TargetSquare).PieceType - (int)board.GetPiece(legalMoves[i].StartSquare).PieceType;
+        }
+        
         if (legalMoves.Length == 0)
         {
             if (board.IsInCheckmate())
                 return -50000 + plyFromRoot;
             return 0;
         }
+        
+        if (depth == 0)
+            return EvaluatePosition(board);
 
-        _tt[key % entries] = new Transposition(key, bestMove, depth, best, best >= beta ? 2 : best > origAlpha ? 3 : 1);
+        int origAlpha = alpha;
+        for (int i = 0; i < legalMoves.Length; i ++)
+        {
+            if (hasPassedTimeThreshold(timer)) return 50000;
+            
+            int ind = i;
+            for(int j = i + 1; j < legalMoves.Length; j++) {
+                if(scores[j] > scores[ind]) ind = j;
+            }
+            (scores[i], scores[ind]) = (scores[ind], scores[i]);
+            (legalMoves[i], legalMoves[ind]) = (legalMoves[ind], legalMoves[i]);
 
-        return best;
+            Move move = legalMoves[i];
+            
+            board.MakeMove(move);
+            int eval = -SearchPosition(board, depth - 1, plyFromRoot + 1, -beta, -alpha, timer);
+            board.UndoMove(move);
+            if (eval >= beta)
+                return beta;
+            if (eval > alpha)
+            {
+                alpha = eval;
+                bestMove = move;
+                if (!notRoot)
+                    _bestMove = move;
+            }
+        }
+        _tt[key % entries] = new Transposition(key, bestMove, depth, alpha, alpha >= beta ? 2 : alpha > origAlpha ? 3 : 1);
+
+        return alpha;
     }
 
     int EvaluatePosition(Board board)
@@ -140,17 +146,18 @@ public class MyBot : IChessBot
         int phase = 0, midEval = 0, endEval = 0;
         foreach (bool white in new[] { true, false })
         {
-            for (PieceType piece = PieceType.Pawn; piece <= PieceType.King; piece++)
+            for (int piece = 1; piece <= 6; piece++)
             {
-                int intPiece = (int)piece, square;
-                ulong bitBoard = board.GetPieceBitboard(piece, white);
+                int square;
+                ulong bitBoard = board.GetPieceBitboard((PieceType)piece, white);
                 while (bitBoard != 0)
                 {
                     square = BitboardHelper.ClearAndGetIndexOfLSB(ref bitBoard);
-                    phase += _phasePieceValues[intPiece];
-                    midEval += GetPieceSquareValue(intPiece - 1, square) + _centiPawnValues[intPiece];
-                    endEval += GetPieceSquareValue(intPiece - 1 + (intPiece == 6 ? 1 : 0), square) +
-                               _centiPawnValues[intPiece];
+                    phase += _phasePieceValues[piece];
+                    var pieceSquareValue = GetPieceSquareValue(piece - 1, square);
+                    midEval += pieceSquareValue + _centiPawnValues[piece];
+                    endEval += (piece == 6 ? GetPieceSquareValue(6, square) : pieceSquareValue) +
+                               _centiPawnValues[piece];
                 }
             }
 

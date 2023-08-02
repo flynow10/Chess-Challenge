@@ -1,4 +1,5 @@
-﻿using Raylib_cs;
+﻿using System.Collections.Generic;
+using Raylib_cs;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -10,8 +11,28 @@ namespace ChessChallenge.Application
         const bool hideRaylibLogs = true;
         static Camera2D cam;
 
-        public static void Main()
+        public static void Main(string[] args)
         {
+            if (args.Length > 0)
+            {
+                switch (args[0])
+                {
+                    case "bot":
+                        bool humanOpponent = false;
+                        if (args.Length > 1)
+                        {
+                            if ((new List<string> { "human" }).Contains(args[1].ToLower()))
+                            {
+                                humanOpponent = true;
+                            }
+                        }
+                        MyBot.Tester.Run(humanOpponent);
+                        return;
+                    case "program":
+                        Tester.Run(false);
+                        return;
+                }
+            }
             Vector2 loadedWindowSize = GetSavedWindowSize();
             int screenWidth = (int)loadedWindowSize.X;
             int screenHeight = (int)loadedWindowSize.Y;
