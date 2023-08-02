@@ -12,7 +12,7 @@ namespace ChessChallenge.Application
 
         public static void DrawButtons(ChallengeController controller)
         {
-            Vector2 buttonPos = UIHelper.Scale(new Vector2(260, 100));
+            Vector2 buttonPos = UIHelper.Scale(new Vector2(260, 50));
             Vector2 buttonSize = UIHelper.Scale(new Vector2(260, 55));
             float spacing = buttonSize.Y * 1.2f;
             float breakSpacing = spacing * 0.6f;
@@ -41,6 +41,13 @@ namespace ChessChallenge.Application
             if(NextButtonInRow("Clear Fen", ref buttonPos, spacing, buttonSize))
             {
                 controller.FenInputBox.value = "";
+            }
+            UIHelper.DrawText($"Current Game Duration: {controller.GameDurationMilliseconds / (float)60000} mins", buttonPos, UIHelper.ScaleInt(32), 1, Color.WHITE, UIHelper.AlignH.Centre);
+            buttonPos.Y += spacing;
+
+            if (NextButtonInRow("Set new Game Duration", ref buttonPos, spacing, buttonSize with {X = buttonSize.X * (float)1.5}))
+            {
+                controller.SetNewGameDuration();
             }
 
             // Page buttons

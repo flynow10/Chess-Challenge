@@ -41,6 +41,7 @@ namespace ChessChallenge.Application
         Move moveToPlay;
         float playMoveTime;
         public bool HumanWasWhiteLastGame { get; private set; }
+        public int GameDurationMilliseconds { get; private set; } = Settings.GameDurationMilliseconds;
 
         // Bot match state
         readonly string[] botMatchStartFens;
@@ -234,6 +235,25 @@ namespace ChessChallenge.Application
                 PlayerType.MyBotV4 => new ChessPlayer(new Version4.MyBot(), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };
+        }
+
+        public void SetNewGameDuration()
+        {
+            try
+            {
+                Console.Write("Set bot time (mins): ");
+                string? newMinutesString = Console.ReadLine();
+                if (newMinutesString != null)
+                {
+                    float minutes = float.Parse(newMinutesString);
+                    GameDurationMilliseconds = (int)(minutes * 60 * 1000);
+                }
+                StartNewGame(PlayerWhite.PlayerType, PlayerBlack.PlayerType);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
 
         static TokenCount GetMyBotTokenCount()
