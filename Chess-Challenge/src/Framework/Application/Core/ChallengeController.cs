@@ -27,6 +27,7 @@ namespace ChessChallenge.Application
             MyBotV3,
             MyBotV4,
             MyBotV5,
+            MyBotV6,
         }
 
         // Game state
@@ -239,6 +240,7 @@ namespace ChessChallenge.Application
                 PlayerType.MyBotV3 => new ChessPlayer(new Version3.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.MyBotV4 => new ChessPlayer(new Version4.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.MyBotV5 => new ChessPlayer(new Version5.MyBot(), type, GameDurationMilliseconds),
+                PlayerType.MyBotV6 => new ChessPlayer(new Version6.MyBot(), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };
         }
