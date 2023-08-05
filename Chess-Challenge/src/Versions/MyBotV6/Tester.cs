@@ -11,7 +11,7 @@ namespace ChessChallenge.Version6;
 
 public static class Tester {
     const bool throwOnAssertFail = false;
-    private const bool runMateTests = false;
+    private const bool runMateTests = true;
 
     private static MiniChallengeManager controller = new();
     

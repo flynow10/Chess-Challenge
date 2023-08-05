@@ -3,7 +3,6 @@ using System;
 using System.Linq;
 using System.Reflection;
 using ChessChallenge.API;
-using ChessChallenge.Application;
 using Board = ChessChallenge.Chess.Board;
 using Move = ChessChallenge.Chess.Move;
 
@@ -11,7 +10,7 @@ namespace ChessChallenge.MyBot;
 
 public static class Tester {
     const bool throwOnAssertFail = false;
-    private const bool runMateTests = false;
+    const bool runMateTests = true;
 
     private static MiniChallengeManager controller = new();
     
