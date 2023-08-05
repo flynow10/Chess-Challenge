@@ -100,6 +100,26 @@ namespace ChessChallenge.Application
                 pos.Y += spacingY;
                 return pressed;
             }
+            DrawRightButtons(controller);
+        }
+
+        public static void DrawRightButtons(ChallengeController controller) {
+            Vector2 buttonPos = UIHelper.Scale(new Vector2(1630, 950));
+            Vector2 buttonSize = UIHelper.Scale(new Vector2(260, 55));
+            float spacing = buttonSize.Y * 1.2f;
+            float breakSpacing = spacing * 0.6f;
+
+            if(NextButtonInRow("Flip Board", ref buttonPos, spacing, buttonSize))
+            {
+                controller.FlipPerspective();
+            }
+
+            bool NextButtonInRow(string name, ref Vector2 pos, float spacingY, Vector2 size)
+            {
+                bool pressed = UIHelper.Button(name, pos, size);
+                pos.Y -= spacingY;
+                return pressed;
+            }
         }
 
         public static void DrawBotPicker(ChallengeController challengeController, ref Vector2 pos, float spacingY,

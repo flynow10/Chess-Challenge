@@ -223,6 +223,10 @@ namespace ChessChallenge.Application
             }
         }
 
+        public void FlipPerspective() {
+            boardUI.SetPerspective(!boardUI.whitePerspective);
+        }
+
         ChessPlayer CreatePlayer(PlayerType type)
         {
             return type switch

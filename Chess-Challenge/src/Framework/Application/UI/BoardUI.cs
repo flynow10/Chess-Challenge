@@ -15,7 +15,7 @@ namespace ChessChallenge.Application
         // Board settings
         const int squareSize = 100;
         const double moveAnimDuration = 0.15;
-        bool whitePerspective = true;
+        public bool whitePerspective = true;
 
         // Text colours
         static readonly Color activeTextCol = new(200, 200, 200, 255);
