@@ -3,7 +3,8 @@ using Raylib_cs;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using ChessChallenge.MyBot;
+using ChessChallenge.MyBot.Neural_Network;
+using ChessChallenge.Version6;
 
 namespace ChessChallenge.Application
 {
@@ -34,6 +35,9 @@ namespace ChessChallenge.Application
                         return;
                     case "book":
                         OpeningBook.Run();
+                        return;
+                    case "stockfish":
+                        StockfishData.Run();
                         return;
                 }
             }
