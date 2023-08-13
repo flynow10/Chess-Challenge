@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using Raylib_cs;
 using System.IO;
 using System.Numerics;
@@ -80,6 +81,10 @@ namespace ChessChallenge.Application
 
             controller.Release();
             UIHelper.Release();
+            foreach (Process process in UCIBot.UCIBot.Processes)
+            {
+                process.Kill();
+            }
         }
 
         public static void SetWindowSize(Vector2 size)

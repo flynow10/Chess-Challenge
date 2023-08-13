@@ -22,6 +22,8 @@ namespace ChessChallenge.Application
             MyBot,
             EvilBot,
             ExtraEvilBot,
+            StockFish,
+            Comet,
             MyBotV1,
             MyBotV2,
             MyBotV3,
@@ -84,7 +86,7 @@ namespace ChessChallenge.Application
                 .ToArray();
             botTaskWaitHandle = new AutoResetEvent(false);
 
-            StartNewGame(PlayerType.Human, PlayerType.MyBot);
+            StartNewGame(PlayerType.Human, PlayerType.MyBotV6);
         }
 
         public void StartNewGame(PlayerType whiteType, PlayerType blackType, bool autoStarted = false)
@@ -235,6 +237,8 @@ namespace ChessChallenge.Application
                 PlayerType.MyBot => new ChessPlayer(new MyBot.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
                 PlayerType.ExtraEvilBot => new ChessPlayer(new ExtraEvilBot(), type, GameDurationMilliseconds),
+                PlayerType.StockFish => new ChessPlayer(new UCIBot.UCIBot("/opt/homebrew/bin/stockfish"), type, GameDurationMilliseconds),
+                PlayerType.Comet => new ChessPlayer(new UCIBot.UCIBot(Path.Combine(Directory.GetCurrentDirectory(), "src", "Comet", "chess_bot")), type, GameDurationMilliseconds),
                 PlayerType.MyBotV1 => new ChessPlayer(new Version1.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.MyBotV2 => new ChessPlayer(new Version2.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.MyBotV3 => new ChessPlayer(new Version3.MyBot(), type, GameDurationMilliseconds),
@@ -292,7 +296,7 @@ namespace ChessChallenge.Application
         {
             foreach (PlayerType playerType in Enum.GetValues<PlayerType>())
             {
-                if (playerType == PlayerType.Human || playerType == PlayerType.EvilBot)
+                if (new [] {PlayerType.Human, PlayerType.EvilBot, PlayerType.Comet, PlayerType.StockFish}.Contains(playerType))
                 {
                     tokenCounts[playerType] = new TokenCount(0,0);
                     continue;
