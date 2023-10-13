@@ -31,7 +31,7 @@ public static class Tester {
 
         if (anyFailed)
         {
-            WriteWithCol("TEST FAILED");
+            WriteWithCol("TESTS FAILED");
         }
         else
         {

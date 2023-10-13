@@ -53,6 +53,9 @@
     <Compile Update="src\Comet\chess_bot">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
+    <Compile Update="src\My Bot\OpeningBook.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>

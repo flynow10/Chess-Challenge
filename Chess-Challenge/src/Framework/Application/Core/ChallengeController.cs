@@ -86,7 +86,7 @@ namespace ChessChallenge.Application
                 .ToArray();
             botTaskWaitHandle = new AutoResetEvent(false);
 
-            StartNewGame(PlayerType.Human, PlayerType.MyBotV6);
+            StartNewGame(PlayerType.Human, PlayerType.MyBot);
         }
 
         public void StartNewGame(PlayerType whiteType, PlayerType blackType, bool autoStarted = false)

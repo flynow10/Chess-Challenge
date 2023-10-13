@@ -22,7 +22,7 @@ public class MyBot : IChessBot
     private ulong[] _openingBook = { 4103683931930638092, 4121979526239683910, 4103629793867859017, 4085332764272231692, 4121980363758306507, 4103628118830613642 };
     
     const int entries = 1 << 20;
-    private ulong nodes; // #DEBUG
+    // private ulong nodes; // #DEBUG
     Transposition[] _tt = new Transposition[entries];
 
     struct Transposition
@@ -70,24 +70,24 @@ public class MyBot : IChessBot
 
     public Move Think(Board board, Timer timer)
     {
-        // if (board.PlyCount == 0)
-        //     return new Move("e2e4", board);
-        // if (board.PlyCount == 1 && GetRefutationFromMove(board.GameMoveHistory[0], board, out Move refutation))
-        //     return refutation;
-        int depthReached = 0; // #DEBUG
-        int eval = 0; // #DEBUG
+        if (board.PlyCount == 0)
+            return new Move("e2e4", board);
+        if (board.PlyCount == 1 && GetRefutationFromMove(board.GameMoveHistory[0], board, out Move refutation))
+            return refutation;
+        // int depthReached = 0; // #DEBUG
+        // int eval = 0; // #DEBUG
         Move best = Move.NullMove;
         for (int depth = 1; depth < 50; depth++)
         {
-            nodes = 0; // #DEBUG
+            // nodes = 0; // #DEBUG
             int currentEval = SearchPosition(board, depth, 0, -50000, 50000, timer);
             if (hasPassedTimeThreshold(timer))
                 break;
             best = _bestMove;
-            depthReached = depth; // #DEBUG
-            eval = currentEval; // #DEBUG
-            Console.WriteLine("info depth " + depthReached + " currmove " + best.StartSquare.Name + best.TargetSquare.Name + //#DEBUG
-                " score cp " + eval + " nodes " + nodes); // #DEBUG
+            // depthReached = depth; // #DEBUG
+            // eval = currentEval; // #DEBUG
+            // Console.WriteLine("info depth " + depthReached + " currmove " + best.StartSquare.Name + best.TargetSquare.Name + //#DEBUG
+            //     " score cp " + eval + " nodes " + nodes); // #DEBUG
             if(Math.Abs(currentEval) >= 50000 - 50)
                 break;
         }
@@ -97,7 +97,7 @@ public class MyBot : IChessBot
 
     int SearchPosition(Board board, int depth, int plyFromRoot, int alpha, int beta, Timer timer)
     {
-        nodes++; // #DEBUG
+        // nodes++; // #DEBUG
         ulong key = board.ZobristKey;
         bool notRoot = plyFromRoot > 0;
         bool qsearch = depth <= 0;
