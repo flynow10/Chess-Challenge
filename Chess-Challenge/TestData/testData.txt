@@ -1,0 +1,131 @@
+Early Game:
+Skipped Tests: 19; Successful Tests: 983; Failed Tests: 998; Ratio (Success/Failed): 0.9849699
+Average Difference: 229.50026
+Mid Game:
+Skipped Tests: 21; Successful Tests: 1063; Failed Tests: 916; Ratio (Success/Failed): 1.1604804
+Average Difference: 312.89438
+End Game:
+Skipped Tests: 56; Successful Tests: 1147; Failed Tests: 797; Ratio (Success/Failed): 1.4391468
+Average Difference: 416.7109
+
+Early Game:
+Skipped Tests: 19; Successful Tests: 1017; Failed Tests: 964; Ratio (Success/Failed): 1.0549792
+Average Difference: 228.54317
+Mid Game:
+Skipped Tests: 21; Successful Tests: 1043; Failed Tests: 936; Ratio (Success/Failed): 1.1143162
+Average Difference: 312.97473
+End Game:
+Skipped Tests: 56; Successful Tests: 1134; Failed Tests: 810; Ratio (Success/Failed): 1.4
+Average Difference: 417.98868
+
+Early Game:
+Skipped Tests: 19; Successful Tests: 1010; Failed Tests: 971; Ratio (Success/Failed): 1.0401648
+Average Difference: 227.51741
+Mid Game:
+Skipped Tests: 21; Successful Tests: 1055; Failed Tests: 924; Ratio (Success/Failed): 1.1417749
+Average Difference: 311.92975
+End Game:
+Skipped Tests: 56; Successful Tests: 1142; Failed Tests: 802; Ratio (Success/Failed): 1.4239402
+Average Difference: 416.9604
+
+NEW FEN SET
+
+Early Game:
+Skipped Tests: 12; Successful Tests: 1003; Failed Tests: 985; Ratio (Success/Failed): 1.0182741
+Average Difference: 237.50453
+Mid Game:
+Skipped Tests: 15; Successful Tests: 1052; Failed Tests: 933; Ratio (Success/Failed): 1.1275456
+Average Difference: 319.43628
+End Game:
+Skipped Tests: 48; Successful Tests: 1158; Failed Tests: 794; Ratio (Success/Failed): 1.4584383
+Average Difference: 397.1962
+
+Early Game:
+Skipped Tests: 12; Successful Tests: 1011; Failed Tests: 977; Ratio (Success/Failed): 1.0348004
+Average Difference: 236.4995
+Mid Game:
+Skipped Tests: 15; Successful Tests: 1052; Failed Tests: 933; Ratio (Success/Failed): 1.1275456
+Average Difference: 318.67355
+End Game:
+Skipped Tests: 48; Successful Tests: 1166; Failed Tests: 786; Ratio (Success/Failed): 1.4834605
+Average Difference: 397.75308
+
+Early Game:
+Skipped Tests: 12; Successful Tests: 1013; Failed Tests: 975; Ratio (Success/Failed): 1.0389744
+Average Difference: 235.45422
+Mid Game:
+Skipped Tests: 15; Successful Tests: 1047; Failed Tests: 938; Ratio (Success/Failed): 1.1162047
+Average Difference: 318.78085
+End Game:
+Skipped Tests: 48; Successful Tests: 1171; Failed Tests: 781; Ratio (Success/Failed): 1.4993598
+Average Difference: 400.90164
+
+Early Game:
+Skipped Tests: 12; Successful Tests: 984; Failed Tests: 1004; Ratio (Success/Failed): 0.9800797
+Average Difference: 240.62625
+Mid Game:
+Skipped Tests: 15; Successful Tests: 1043; Failed Tests: 942; Ratio (Success/Failed): 1.1072187
+Average Difference: 322.4393
+End Game:
+Skipped Tests: 48; Successful Tests: 1190; Failed Tests: 762; Ratio (Success/Failed): 1.5616798
+Average Difference: 395.104
+
+Early Game:
+Skipped Tests: 12; Successful Tests: 1044; Failed Tests: 944; Ratio (Success/Failed): 1.1059322
+Average Difference: 240.11116
+Mid Game:
+Skipped Tests: 15; Successful Tests: 1059; Failed Tests: 926; Ratio (Success/Failed): 1.1436285
+Average Difference: 322.48566
+End Game:
+Skipped Tests: 48; Successful Tests: 1177; Failed Tests: 775; Ratio (Success/Failed): 1.5187097
+Average Difference: 398.2582
+
+Early Game:
+Skipped Tests: 12; Successful Tests: 1039; Failed Tests: 949; Ratio (Success/Failed): 1.0948367
+Average Difference: 238.81941
+Mid Game:
+Skipped Tests: 15; Successful Tests: 1064; Failed Tests: 921; Ratio (Success/Failed): 1.155266
+Average Difference: 321.01007
+End Game:
+Skipped Tests: 48; Successful Tests: 1177; Failed Tests: 775; Ratio (Success/Failed): 1.5187097
+Average Difference: 397.35605
+
+Early Game:
+Skipped Tests: 12; Successful Tests: 1043; Failed Tests: 945; Ratio (Success/Failed): 1.1037037
+Average Difference: 241.76509
+Mid Game:
+Skipped Tests: 15; Successful Tests: 1060; Failed Tests: 925; Ratio (Success/Failed): 1.1459459
+Average Difference: 324.43225
+End Game:
+Skipped Tests: 48; Successful Tests: 1176; Failed Tests: 776; Ratio (Success/Failed): 1.515464
+Average Difference: 400.01843
+
+Early Game:
+Skipped Tests: 12; Successful Tests: 1043; Failed Tests: 945; Ratio (Success/Failed): 1.1037037
+Average Difference: 241.72787
+Mid Game:
+Skipped Tests: 15; Successful Tests: 1060; Failed Tests: 925; Ratio (Success/Failed): 1.1459459
+Average Difference: 324.3058
+End Game:
+Skipped Tests: 48; Successful Tests: 1177; Failed Tests: 775; Ratio (Success/Failed): 1.5187097
+Average Difference: 399.51947
+
+Early Game:
+Skipped Tests: 12; Successful Tests: 1044; Failed Tests: 944; Ratio (Success/Failed): 1.1059322
+Average Difference: 240.15945
+Mid Game:
+Skipped Tests: 15; Successful Tests: 1060; Failed Tests: 925; Ratio (Success/Failed): 1.1459459
+Average Difference: 323.2408
+End Game:
+Skipped Tests: 48; Successful Tests: 1182; Failed Tests: 770; Ratio (Success/Failed): 1.5350649
+Average Difference: 397.61374
+
+Early Game:
+Skipped Tests: 12; Successful Tests: 1054; Failed Tests: 934; Ratio (Success/Failed): 1.1284796
+Average Difference: 240.33954
+Mid Game:
+Skipped Tests: 15; Successful Tests: 1062; Failed Tests: 923; Ratio (Success/Failed): 1.1505959
+Average Difference: 323.85895
+End Game:
+Skipped Tests: 48; Successful Tests: 1184; Failed Tests: 768; Ratio (Success/Failed): 1.5416666
+Average Difference: 400.1117

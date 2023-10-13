@@ -1,9 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Raylib_cs;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using ChessChallenge.Chess;
 using ChessChallenge.MyBot;
 
 namespace ChessChallenge.Application
@@ -29,6 +32,40 @@ namespace ChessChallenge.Application
                             }
                         }
                         MyBot.Tester.Run(humanOpponent);
+                        return;
+                    case "fens":
+                        foreach (var moveCount in new[] {15,25,50})
+                        {
+                            List<string> fenList = new();
+                            for (int i = 0; i < 2000; i++)
+                            {
+                                string fen = FenUtility.CurrentFen(MyBot.Tester.RandomBoard(moveCount));
+                                if (!fenList.Contains(fen))
+                                {
+                                    fenList.Add(fen);
+                                }
+                            }
+
+                            string fileName;
+                            switch (moveCount)
+                            {
+                                case 15:
+                                    fileName = "earlyFens";
+                                    break;
+                                case 25:
+                                    fileName = "midFens";
+                                    break;
+                                case 50:
+                                    fileName = "endFens";
+                                    break;
+                                default:
+                                    fileName = "fens";
+                                    break;
+                            }
+                            string fullPath = Path.Combine(Environment.CurrentDirectory, "TestData", fileName + ".txt");
+                            File.WriteAllText(fullPath, String.Join("\n", fenList));
+                        }
+
                         return;
                     case "program":
                         Tester.Run(false);

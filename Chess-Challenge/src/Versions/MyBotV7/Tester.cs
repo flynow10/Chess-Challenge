@@ -10,7 +10,7 @@ using ChessChallenge.Application;
 using Board = ChessChallenge.Chess.Board;
 using Move = ChessChallenge.Chess.Move;
 
-namespace ChessChallenge.MyBot;
+namespace ChessChallenge.Version7;
 
 public static class Tester {
     const bool throwOnAssertFail = false;

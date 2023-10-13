@@ -1,7 +1,7 @@
 ﻿using System;
 using ChessChallenge.API;
 
-namespace ChessChallenge.MyBot;
+namespace ChessChallenge.Version7;
 
 public class MyBot : IChessBot
 {
@@ -20,7 +20,6 @@ public class MyBot : IChessBot
         1258605535789388048, 1576256919301905233, 1566649386700635473, 5401900951762225
     };
 
-    private ulong nodes; // #DEBUG
     Transposition[] _tt = new Transposition[1048576];
     Timer timer;
 
@@ -41,22 +40,14 @@ public class MyBot : IChessBot
 
     public Move Think(Board board, Timer timer)
     {
-        int depthReached; // #DEBUG
-        int eval; // #DEBUG
         Move best = Move.NullMove;
         this.timer = timer;
         for (int depth = 1; depth < 50; depth++)
         {
-            nodes = 0; // #DEBUG
             int currentEval = SearchPosition(board, depth, 0, -50000, 50000);
             if (HasPassedTimeThreshold())
                 break;
             best = _bestMove;
-            depthReached = depth; // #DEBUG
-            eval = currentEval; // #DEBUG
-            Console.WriteLine("info depth " + depthReached + " currmove " + best.StartSquare.Name + //#DEBUG
-                              best.TargetSquare.Name + //#DEBUG
-                              " score cp " + eval + " nodes " + nodes); // #DEBUG
             if (Math.Abs(currentEval) >= 49950)
                 break;
         }
@@ -66,7 +57,6 @@ public class MyBot : IChessBot
 
     int SearchPosition(Board board, int depth, int plyFromRoot, int alpha, int beta)
     {
-        nodes++; // #DEBUG
         ulong key = board.ZobristKey, ttKey = key % 1048576;
         bool notRoot = plyFromRoot > 0, qSearch = depth <= 0;
 

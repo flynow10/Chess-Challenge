@@ -56,6 +56,12 @@
     <Compile Update="src\My Bot\OpeningBook.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
+    <Compile Update="src\Versions\MyBotV7\MyBot.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Compile>
+    <Compile Update="src\Versions\MyBotV7\OpeningBook.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -75,6 +81,7 @@
 
   <ItemGroup>
     <Folder Include="src\Framework\Chess\" />
+    <Folder Include="TestData\" />
   </ItemGroup>
 
   <ItemGroup>

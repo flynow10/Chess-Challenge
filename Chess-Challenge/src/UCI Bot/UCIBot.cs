@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using ChessChallenge.API;
 
 namespace ChessChallenge.UCIBot;
@@ -9,6 +10,10 @@ namespace ChessChallenge.UCIBot;
 public class UCIBot : IChessBot
 {
     private Process botProcess;
+
+    private bool displayOutput;
+
+    public static string STOCKFISH_PATH = "/opt/homebrew/bin/stockfish";
 
     public static List<Process> Processes = new();
 
@@ -21,9 +26,11 @@ public class UCIBot : IChessBot
     /// </summary>
     private const int SKILL_LEVEL = 20;
 
-    public UCIBot(String pathToExecutable)
+    public UCIBot(String pathToExecutable, bool displayOutput = true)
     {
         var botExecutable = pathToExecutable;
+
+        this.displayOutput = displayOutput;
 
         botProcess = new();
         Processes.Add(botProcess);
@@ -54,6 +61,46 @@ public class UCIBot : IChessBot
         Ins().WriteLine("ucinewgame");
     }
 
+    public int EvaluatePosition(Board board)
+    {
+        Ins().WriteLine("ucinewgame");
+        Ins().WriteLine($"position fen {board.GetFenString()}");
+        Ins()
+            .WriteLine(
+                $"go depth 1"
+            );
+        string? line;
+        int eval = 0;
+        while ((line = Outs().ReadLine()) != null)
+        {
+            if (displayOutput)
+            {
+                Console.WriteLine(line);
+            }
+            if (line.Contains("score"))
+            {
+                Match mateMatch = Regex.Match(line, "\\smate\\s(-?\\d*)");
+                if (mateMatch.Success)
+                {
+                    int mateDistance = int.Parse(mateMatch.Groups[1].ToString());
+                    eval = 50000 - Math.Abs(mateDistance);
+                    if (mateDistance < 0)
+                        eval = -eval;
+                    return eval;
+                }
+
+                Match scoreMatch = Regex.Match(line, "\\scp\\s(-?\\d*)");
+                if (scoreMatch.Success)
+                {
+                    int score = int.Parse(scoreMatch.Groups[1].ToString());
+                    eval = score;
+                }
+                break;
+            }
+        }
+        return eval;
+    }
+
     public Move Think(Board board, Timer timer)
     {
         Ins().WriteLine($"position fen {board.GetFenString()}");
@@ -75,7 +122,10 @@ public class UCIBot : IChessBot
 
         while ((line = Outs().ReadLine()) != null)
         {
-            Console.WriteLine(line.Substring(0, Math.Min(72, line.Length)));
+            if (displayOutput)
+            {
+                Console.WriteLine(line.Substring(0, Math.Min(72, line.Length)));
+            }
             if (line.StartsWith("bestmove"))
             {
                 var moveStr = line.Split()[1];
