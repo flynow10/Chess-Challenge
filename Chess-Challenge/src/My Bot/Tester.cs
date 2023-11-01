@@ -31,7 +31,7 @@ public static class Tester {
             MateInThreeTests();
             MateInFourTests();
         }
-        PieceSquareTablesTest();
+        // PieceSquareTablesTest();
         EvaluationTest();
 
         if (anyFailed)

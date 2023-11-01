@@ -22,6 +22,7 @@ namespace ChessChallenge.Application
             MyBot,
             EvilBot,
             ExtraEvilBot,
+            PawnBot,
             StockFish,
             Comet,
             MyBotV1,
@@ -238,6 +239,7 @@ namespace ChessChallenge.Application
                 PlayerType.MyBot => new ChessPlayer(new MyBot.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
                 PlayerType.ExtraEvilBot => new ChessPlayer(new ExtraEvilBot(), type, GameDurationMilliseconds),
+                PlayerType.PawnBot => new ChessPlayer(new PawnBot(), type, GameDurationMilliseconds),
                 PlayerType.StockFish => new ChessPlayer(new UCIBot.UCIBot("/opt/homebrew/bin/stockfish"), type, GameDurationMilliseconds),
                 PlayerType.Comet => new ChessPlayer(new UCIBot.UCIBot(Path.Combine(Directory.GetCurrentDirectory(), "src", "Comet", "chess_bot")), type, GameDurationMilliseconds),
                 PlayerType.MyBotV1 => new ChessPlayer(new Version1.MyBot(), type, GameDurationMilliseconds),
@@ -298,7 +300,7 @@ namespace ChessChallenge.Application
         {
             foreach (PlayerType playerType in Enum.GetValues<PlayerType>())
             {
-                if (new [] {PlayerType.Human, PlayerType.EvilBot, PlayerType.Comet, PlayerType.StockFish}.Contains(playerType))
+                if (new [] {PlayerType.Human, PlayerType.EvilBot, PlayerType.Comet, PlayerType.StockFish, PlayerType.PawnBot}.Contains(playerType))
                 {
                     tokenCounts[playerType] = new TokenCount(0,0);
                     continue;

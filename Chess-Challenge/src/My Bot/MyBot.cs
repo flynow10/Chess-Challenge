@@ -2,14 +2,13 @@
 using ChessChallenge.API;
 
 namespace ChessChallenge.MyBot;
-
 public class MyBot : IChessBot
 {
     // Centi pawn values for: null, Pawn, Knight, Bishop, Rook, Queen, King
     int[] _centiPawnValues = { 0, 100, 300, 320, 500, 900, 0 }, _phasePieceValues = { 0, 0, 1, 1, 2, 4, 0 };
-    Move _bestMove;
+    Move _bestMove = Move.NullMove;
 
-    ulong[] _pieceSquareTables =
+    private ulong[] _pieceSquareTables =
     {
         9913330531774723959, 8609676836631704936, 11078252110869744008, 8608480570021773311,
         250098419548360960, 1715269411402468225, 1710465645101833345, 4803766359914288,
@@ -20,69 +19,100 @@ public class MyBot : IChessBot
         1258605535789388048, 1576256919301905233, 1566649386700635473, 5401900951762225
     };
 
-    private ulong nodes; // #DEBUG
-    Transposition[] _tt = new Transposition[1048576];
-    Timer timer;
+    private ulong[] _openingBook = { 4103683931930638092, 4121979526239683910, 4103629793867859017, 4085332764272231692, 4121980363758306507, 4103628118830613642 };
+    
+    const int entries = 1 << 20;
+    // private ulong nodes; // #DEBUG
+    Transposition[] _tt = new Transposition[entries];
 
     struct Transposition
     {
         public ulong key;
         public Move move;
         public int depth, eval, bound;
+
+        public Transposition(ulong _key, Move _move, int _depth, int _eval, int _bound)
+        {
+            key = _key;
+            move = _move;
+            depth = _depth;
+            eval = _eval;
+            bound = _bound;
+        }
     }
 
-    bool HasPassedTimeThreshold() => timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30;
-
+    bool hasPassedTimeThreshold(Timer timer)
+    {
+        return timer.MillisecondsElapsedThisTurn >= Math.Min(timer.MillisecondsRemaining / 30, 8000);
+    }
 
     // 0 = pawn; 1 = knight; 2 = bishop; 3 = rook; 4 = queen; 5 = king mid; 6 = king end
-    int GetPieceSquareValue(int pieceTable, int square) =>
-        (int)((_pieceSquareTables[pieceTable * 4 + square / 16] >> square % 16 * 4) & 15) * 5 - 35;
+    int GetPieceSquareValue(int pieceTable, int square)
+    {
+        return ((int)((_pieceSquareTables[pieceTable * 4 + square / 16] >> square % 16 * 4) & 15) - 7) * 5;
+    }
+    
+    bool GetRefutationFromMove(Move firstMove, Board board, out Move refutation)
+    {
+        foreach (var bookPart in _openingBook)
+            foreach (var movePair in new [] {(uint)bookPart, (uint)(bookPart >> 32)})
+                if ((movePair & 0xFFFF) == firstMove.RawValue)
+                    foreach (Move move in board.GetLegalMoves())
+                        if (move.RawValue == (ushort)(movePair >> 16))
+                        {
+                            refutation = move;
+                            return true;
+                        }
 
+        refutation = Move.NullMove;
+        return false;
+    }
 
     public Move Think(Board board, Timer timer)
     {
-        int depthReached; // #DEBUG
-        int eval; // #DEBUG
+        if (board.PlyCount == 0)
+            return new Move("e2e4", board);
+        if (board.PlyCount == 1 && GetRefutationFromMove(board.GameMoveHistory[0], board, out Move refutation))
+            return refutation;
+        // int depthReached = 0; // #DEBUG
+        // int eval = 0; // #DEBUG
         Move best = Move.NullMove;
-        this.timer = timer;
         for (int depth = 1; depth < 50; depth++)
         {
-            nodes = 0; // #DEBUG
-            int currentEval = SearchPosition(board, depth, 0, -50000, 50000);
-            if (HasPassedTimeThreshold())
+            // nodes = 0; // #DEBUG
+            int currentEval = SearchPosition(board, depth, 0, -50000, 50000, timer);
+            if (hasPassedTimeThreshold(timer))
                 break;
             best = _bestMove;
-            depthReached = depth; // #DEBUG
-            eval = currentEval; // #DEBUG
-            Console.WriteLine("info depth " + depthReached + " currmove " + best.StartSquare.Name + //#DEBUG
-                              best.TargetSquare.Name + //#DEBUG
-                              " score cp " + eval + " nodes " + nodes); // #DEBUG
-            if (Math.Abs(currentEval) >= 49950)
+            // depthReached = depth; // #DEBUG
+            // eval = currentEval; // #DEBUG
+            // Console.WriteLine("info depth " + depthReached + " currmove " + best.StartSquare.Name + best.TargetSquare.Name + //#DEBUG
+            //     " score cp " + eval + " nodes " + nodes); // #DEBUG
+            if(Math.Abs(currentEval) >= 50000 - 50)
                 break;
         }
 
         return best;
     }
 
-    int SearchPosition(Board board, int depth, int plyFromRoot, int alpha, int beta)
+    int SearchPosition(Board board, int depth, int plyFromRoot, int alpha, int beta, Timer timer)
     {
-        nodes++; // #DEBUG
-        ulong key = board.ZobristKey, ttKey = key % 1048576;
-        bool notRoot = plyFromRoot > 0, qSearch = depth <= 0;
+        // nodes++; // #DEBUG
+        ulong key = board.ZobristKey;
+        bool notRoot = plyFromRoot > 0;
+        bool qsearch = depth <= 0;
 
         if (notRoot && board.IsRepeatedPosition())
             return 0;
 
-        Transposition entry = _tt[ttKey];
-        if (notRoot && entry.key == key && entry.depth >= depth && (entry.bound == 3 ||
-                                                                    (entry.bound == 2 && entry.eval >= beta) ||
-                                                                    (entry.bound == 1 && entry.eval <= alpha)))
+        Transposition entry = _tt[key % entries];
+        if(notRoot && entry.key == key && entry.depth >= depth && (entry.bound == 3 || (entry.bound == 2 && entry.eval >= beta) || (entry.bound == 1 && entry.eval <= alpha)))
             return entry.eval;
-        Move[] legalMoves = board.GetLegalMoves(qSearch);
-        if (!qSearch && legalMoves.Length == 0)
+        Move[] legalMoves = board.GetLegalMoves(qsearch);
+        if (!qsearch && legalMoves.Length == 0)
             return board.IsInCheck() ? -50000 + plyFromRoot : 0;
 
-        if (qSearch)
+        if (qsearch)
         {
             int eval = EvaluatePosition(board);
             if (eval >= beta)
@@ -93,24 +123,26 @@ public class MyBot : IChessBot
         int[] scores = new int[legalMoves.Length];
         Move bestMove = Move.NullMove;
 
-        for (int i = 0; i < legalMoves.Length; i++)
-            if (legalMoves[i] == entry.move) scores[i] = 1000000;
-            else if (legalMoves[i].IsCapture)
-                scores[i] = 100 * (int)board.GetPiece(legalMoves[i].TargetSquare).PieceType -
-                            (int)board.GetPiece(legalMoves[i].StartSquare).PieceType;
+        for(int i = 0; i < legalMoves.Length; i++) {
+            if(legalMoves[i] == entry.move) scores[i] = 1000000;
+            else if(legalMoves[i].IsCapture) scores[i] = 100 * (int)board.GetPiece(legalMoves[i].TargetSquare).PieceType - (int)board.GetPiece(legalMoves[i].StartSquare).PieceType;
+        }
 
 
         int origAlpha = alpha;
-        for (int i = 0; i < legalMoves.Length; i++)
+        for (int i = 0; i < legalMoves.Length; i ++)
         {
-            for (int j = i + 1; j < legalMoves.Length; j++)
-                if (scores[j] > scores[i])
-                    (scores[i], scores[j], legalMoves[i], legalMoves[j]) =
-                        (scores[j], scores[i], legalMoves[j], legalMoves[i]);
-            Move move = legalMoves[i];
+            if (hasPassedTimeThreshold(timer)) return 50000;
+            
+            for(int j = i + 1; j < legalMoves.Length; j++) {
+                if(scores[j] > scores[i])
+                    (scores[i], scores[j], legalMoves[i], legalMoves[j]) = (scores[j], scores[i], legalMoves[j], legalMoves[i]);
+            }
 
+            Move move = legalMoves[i];
+            
             board.MakeMove(move);
-            int score = -SearchPosition(board, depth - 1, plyFromRoot + 1, -beta, -alpha);
+            int score = -SearchPosition(board, depth - 1, plyFromRoot + 1, -beta, -alpha, timer);
             board.UndoMove(move);
             if (score >= beta)
                 return beta;
@@ -121,26 +153,18 @@ public class MyBot : IChessBot
                 if (!notRoot)
                     _bestMove = move;
             }
-
-            if (HasPassedTimeThreshold()) return 50000;
         }
 
-        _tt[ttKey] = new Transposition
-        {
-            key = key, move = bestMove, depth = depth, eval = alpha,
-            bound = alpha >= beta ? 2 : alpha > origAlpha ? 3 : 1
-        };
+        _tt[key % entries] = new Transposition(key, bestMove, depth, alpha, alpha >= beta ? 2 : alpha > origAlpha ? 3 : 1);
+
         return alpha;
     }
 
     int EvaluatePosition(Board board)
     {
         int phase = 0, midEval = 0, endEval = 0;
-        int[] pawnAttackFiles = new int[16];
         foreach (bool white in new[] { true, false })
         {
-            Square kingSquare = board.GetKingSquare(white), oppositeKingSquare = board.GetKingSquare(!white);
-            ulong attacks = 0, currentAttacks, kingMoves = BitboardHelper.GetKingAttacks(oppositeKingSquare);
             for (int piece = 1; piece <= 6; piece++)
             {
                 Square square;
@@ -148,49 +172,31 @@ public class MyBot : IChessBot
                 while (bitBoard != 0)
                 {
                     square = new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref bitBoard));
-                    attacks |= currentAttacks = BitboardHelper.GetPieceAttacks((PieceType)piece, square, board, white);
-                    if (piece == 1)
-                    {
-                        if (Math.Abs(square.File - kingSquare.File) < 2 &&
-                            (white ? kingSquare.Rank < square.Rank : kingSquare.Rank > square.Rank) &&
-                            Math.Abs(square.Rank - kingSquare.Rank) < 3)
-                            midEval += 50;
-                        while (currentAttacks != 0)
-                            pawnAttackFiles[
-                                new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref currentAttacks)).File +
-                                (white ? 0 : 8)]++;
+                    if (!white) {
+                        square = new Square((7 - square.Rank) * 8 + square.File);
                     }
-
-                    if (!white)
-                        square = new Square(square.File, 7 - square.Rank);
                     phase += _phasePieceValues[piece];
-                    int pieceSquareValue = GetPieceSquareValue(piece - 1, square.Index);
+                    var pieceSquareValue = GetPieceSquareValue(piece - 1, square.Index);
                     midEval += pieceSquareValue + _centiPawnValues[piece];
                     endEval += (piece == 6 ? GetPieceSquareValue(6, square.Index) : pieceSquareValue) +
                                _centiPawnValues[piece];
                 }
             }
 
-            while (kingMoves != 0)
-                if (BitboardHelper.SquareIsSet(attacks,
-                        new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref kingMoves))))
-                {
-                    midEval += 30;
-                    endEval += 30;
-                }
-
+            // endEval += 5 * centerManhattanDistance(board.GetKingSquare(!white));
             midEval = -midEval;
             endEval = -endEval;
         }
 
-        for (int i = 0; i < pawnAttackFiles.Length; i++)
-            if (pawnAttackFiles[i] == 0)
-            {
-                int bonus = i < 8 ? -30 : 30;
-                midEval += bonus;
-                endEval += bonus;
-            }
-
         return (board.IsWhiteToMove ? 1 : -1) * (midEval * phase + endEval * (24 - phase)) / 24;
     }
+    
+    // int centerManhattanDistance(Square square)
+    // {
+    //     int file = square.File;
+    //     int rank = square.Rank;
+    //     file ^= (file - 4) >> 8;
+    //     rank ^= (rank - 4) >> 8;
+    //     return (file + rank) & 7;
+    // }
 }

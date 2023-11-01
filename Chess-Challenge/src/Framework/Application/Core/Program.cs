@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Raylib_cs;
 using System.IO;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ChessChallenge.Chess;
