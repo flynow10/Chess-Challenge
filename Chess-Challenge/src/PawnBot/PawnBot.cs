@@ -1,3 +1,4 @@
+#pragma warning disable
 /* Game      */                                                             // Story:
 /* Tech      */                              using System;                  // https://youtu.be/5vsLmM756LA
 /* Explained */                          using ChessChallenge.API;
