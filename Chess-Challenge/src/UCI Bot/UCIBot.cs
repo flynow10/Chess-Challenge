@@ -24,12 +24,13 @@ public class UCIBot : IChessBot
     /// <summary>
     /// The skill level of stockfish. Max is 20, min is 0.
     /// </summary>
-    private const int SKILL_LEVEL = 20;
+    private int _skillLevel = 20;
 
-    public UCIBot(String pathToExecutable, bool displayOutput = true)
+    public UCIBot(String pathToExecutable, bool displayOutput = true, int skillLevel = 20)
     {
         var botExecutable = pathToExecutable;
 
+        _skillLevel = skillLevel;
         this.displayOutput = displayOutput;
 
         botProcess = new();
@@ -57,7 +58,7 @@ public class UCIBot : IChessBot
             throw new Exception("Failed to communicate with stockfish");
         }
 
-        Ins().WriteLine($"setoption name Skill Level value {SKILL_LEVEL}");
+        Ins().WriteLine($"setoption name Skill Level value {_skillLevel}");
         Ins().WriteLine("ucinewgame");
     }
 
