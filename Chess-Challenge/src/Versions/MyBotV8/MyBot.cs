@@ -5,7 +5,7 @@ namespace ChessChallenge.Version8;
 
 public class MyBot : IChessBot
 {
-    private const bool Debug = false;
+    private bool Debug = false;
     private readonly Search _search;
 
     public MyBot(int skillLevel = 20)
