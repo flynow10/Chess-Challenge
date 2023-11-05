@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using ChessChallenge.API;
 
 namespace ChessChallenge.MyBot;

@@ -49,7 +49,7 @@ public class Search
         Random rng = new Random();
         if (rng.Next(0, 20) >= _skillLevel)
         {
-            int[] weights = { _skillLevel / 4, _skillLevel / 2, _skillLevel };
+            int[] weights = { 20 - _skillLevel, 10, _skillLevel };
             int rndDepth = rng.Next(weights.Sum());
             for (int i = 0; i < weights.Length; i++)
             {
@@ -63,12 +63,22 @@ public class Search
             }
             _killers = new Move[_globalDepth + 1];
             int eval = NegamaxSearch(_globalDepth);
-            if(_debug)
-                Console.WriteLine($"(MyBot) info moveType random depth {_globalDepth} score cp {eval}");
+            
+            // Pick a completely random move if below skill 5
+            if (_skillLevel < 5 && _globalDepth == 1 && Math.Abs(eval) < 49950)
+            {
+                Move[] moves = _board.GetLegalMoves();
+                if(_debug) // #DEBUG
+                    Console.WriteLine($"(MyBot) info random depth 1 score cp {eval}"); // #DEBUG
+                return moves[rng.Next(moves.Length)];
+            }
+            
+            if(_debug) // #DEBUG
+                Console.WriteLine($"(MyBot) info low depth {_globalDepth} score cp {eval}"); // #DEBUG
             return _bestMove;
         }
-        Console.WriteLine(
-            $"(MyBot) info ttCount {ttFilledCount} ttPercentFilled {ttFilledCount / (float)_tt.Length} zobrist {board.ZobristKey}");
+        Console.WriteLine( // #DEBUG
+            $"(MyBot) info ttCount {ttFilledCount} ttPercentFilled {ttFilledCount / (float)_tt.Length} zobrist {board.ZobristKey}"); // #DEBUG
         if ((_flags & SearchFlags.UseIterativeDeepening) != 0)
         {
             int lastIterTotalNodes = 0;

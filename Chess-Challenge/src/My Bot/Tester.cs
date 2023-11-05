@@ -16,7 +16,7 @@ namespace ChessChallenge.MyBot;
 public static class Tester
 {
     const bool throwOnAssertFail = false;
-    const bool runMateTests = false;
+    const bool runMateTests = true;
 
     private static MiniChallengeManager controller = new();
 

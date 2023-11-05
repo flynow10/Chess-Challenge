@@ -38,17 +38,8 @@ public class Evaluate
         383730812414424149, 384601907111998612, 401758895947998613, 420612834953622999, 402607438610388375,
         329978099633296596, 67159620133902
     };
-    
-    static readonly int[] PassedPawnTable = {
-        0,   0,   0,   0,   0,   0,   0,   0,
-        140, 140, 140, 140, 140, 140, 140, 140,
-        92,  92,  92,  92,  92,  92,  92,  92,
-        56,  56,  56,  56,  56,  56,  56,  56,
-        32,  32,  32,  32,  32,  32,  32,  32,
-        20,  20,  20,  20,  20,  20,  20,  20,
-        20,  20,  20,  20,  20,  20,  20,  20,
-        0,   0,   0,   0,   0,   0,   0,   0
-    };
+
+    static readonly int[] PassedPawnTable = { 0, 140, 92, 56, 32, 20, 20, 0 };
 
     private const int entries = 1 << 22;
     readonly EvaluationFlags _flags;
@@ -72,7 +63,7 @@ public class Evaluate
     {
         ulong key = board.ZobristKey;
         TTEvalEntry entry = _ttEval[key % entries];
-        if ((_flags & EvaluationFlags.UseEvalTT) != 0&&entry.key == key) return entry.eval;
+        if ((_flags & EvaluationFlags.UseEvalTT) != 0 && entry.key == key) return entry.eval;
         // Evaluation from white's perspective
         int eval = 0,
             whiteMaterial = 0,
@@ -96,7 +87,7 @@ public class Evaluate
                 {
                     int squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref bitBoard);
                     Square square = new Square(squareIndex);
-                    
+
                     // Get centipawn values for each piece
                     int cpValue = PieceCentipawnValues[piece];
                     if (isWhite)
@@ -104,34 +95,34 @@ public class Evaluate
                     else
                         blackMaterial += cpValue;
                     materialBalance += cpValue;
-                    
+
                     // Calculate passed, doubled, weakened, and protected pawn bonuses
                     // Check flag here so as to not run expensive Evaluate Pawn method when unneeded
-                    if((_flags & EvaluationFlags.UsePawnBonuses) != 0 && piece == (int)PieceType.Pawn)
+                    if ((_flags & EvaluationFlags.UsePawnBonuses) != 0 && piece == (int)PieceType.Pawn)
                         pawnBonuses = EvaluatePawn(board, square, isWhite);
-                    
+
                     // Calculate King Tropism (how close each piece is to the enemy king
                     Square kingSquare = board.GetKingSquare(!isWhite);
                     int kingTropism = KingTropism(square, kingSquare);
                     int pieceTropismIndex = piece * 2;
                     midKingTropism += PieceKingTropismValues[pieceTropismIndex] * kingTropism;
                     endKingTropism += PieceKingTropismValues[pieceTropismIndex + 1] * kingTropism;
-                    
+
                     // Calculate mobility from attack bitboards
-                    ulong pieceAttacks = BitboardHelper.GetPieceAttacks((PieceType) piece, square, board, isWhite);
+                    ulong pieceAttacks = BitboardHelper.GetPieceAttacks((PieceType)piece, square, board, isWhite);
                     mobility += BitboardHelper.GetNumberOfSetBits(pieceAttacks);
-                    
+
                     // Calculate the phase of the game (mid, end)
                     phase += PiecePhaseValues[piece];
-                    
+
                     // Get Piece Square Table Bonuses
                     int pstIndex = 128 * (piece - 1) + squareIndex ^
-                                (isWhite ? 56 : 0);
+                                   (isWhite ? 56 : 0);
                     midPieceSquareBonus += GetPieceSquareValue(pstIndex);
                     endPieceSquareBonus += GetPieceSquareValue(pstIndex + 64);
                 }
             }
-            
+
             // Invert side based values for evaluating opponent
             materialBalance = -materialBalance;
             pawnBonuses = -pawnBonuses;
@@ -143,7 +134,7 @@ public class Evaluate
         }
 
         eval += materialBalance;
-        
+
         int midScore = midPieceSquareBonus;
         int endScore = endPieceSquareBonus;
 
@@ -157,10 +148,10 @@ public class Evaluate
         {
             midScore += KingShield(board, true) - KingShield(board, false);
         }
-        
+
         // Merge mid game and end game score bonuses based on phase
         eval += (midScore * phase + endScore * (24 - phase)) / 24;
-        
+
         if ((_flags & EvaluationFlags.UseMobility) != 0)
         {
             eval += mobility;
@@ -182,15 +173,13 @@ public class Evaluate
                 if (strongerMaterial < 400) return 0;
 
                 if (weakerPawns == 0 && strongerMaterial == 2 * PieceCentipawnValues[(int)PieceType.Knight]) return 0;
-                
-                
             }
         }
 
         // Flip eval when evaluating for black
         if (!board.IsWhiteToMove)
             eval = -eval;
-        if((_flags & EvaluationFlags.UseEvalTT) != 0)
+        if ((_flags & EvaluationFlags.UseEvalTT) != 0)
             _ttEval[key % entries] = new(key, eval);
         return eval;
     }
@@ -211,7 +200,7 @@ public class Evaluate
                 int rank = backRank + forwardCount * forward;
                 Piece piece = board.GetPiece(new Square(file, rank));
                 if (piece.IsPawn && piece.IsWhite == isWhite)
-                    result += (3-forwardCount) * KING_SHIELD_MULTIPLIER;
+                    result += (3 - forwardCount) * KING_SHIELD_MULTIPLIER;
             }
         }
 
@@ -228,23 +217,23 @@ public class Evaluate
         // bool isOpposed = (opponentPawns & forwardMask) != 0;
         int doubledPawns = BitboardHelper.GetNumberOfSetBits(friendlyPawns & forwardMask);
         result -= doubledPawns * 20;
-        
-        Square reverseSquare = isWhite ? square : new Square(square.File, 7 - square.Rank);
+
+        int pawnRank = isWhite ? square.Rank : 7 - square.Rank;
         if (isPassedPawn)
         {
             if (IsPawnSupported(board, square, isWhite))
-                result += PassedPawnTable[reverseSquare.Index] * 5 / 4;
+                result += PassedPawnTable[pawnRank] * 5 / 4;
             else
-                result += PassedPawnTable[reverseSquare.Index];
+                result += PassedPawnTable[pawnRank];
         }
-        
+
         return result;
     }
 
     bool IsPawnSupported(Board board, Square square, bool isWhite)
     {
         int backward = isWhite ? -8 : 8;
-        foreach (int fileChange in new [] {1,-1})
+        foreach (int fileChange in new[] { 1, -1 })
         {
             for (int rankChange = 0; rankChange <= 1; rankChange++)
             {
@@ -275,7 +264,7 @@ public class Evaluate
         ulong fileLeft = FileMask(Math.Max(0, square.File - 1));
         ulong fileRight = FileMask(Math.Min(7, square.File + 1));
         ulong tripleFileMask = fileMask | fileLeft | fileRight;
-        
+
         return tripleFileMask & ForwardMask(square, isWhite);
     }
 
