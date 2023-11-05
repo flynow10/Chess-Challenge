@@ -2,6 +2,7 @@
 using System.Numerics;
 using System;
 using System.IO;
+using System.Linq;
 
 namespace ChessChallenge.Application
 {
@@ -9,6 +10,7 @@ namespace ChessChallenge.Application
     {
         public static ChallengeController.PlayerType Bot1Type = ChallengeController.PlayerType.MyBot;
         public static ChallengeController.PlayerType Bot2Type = ChallengeController.PlayerType.MyBot;
+        public static ChallengeController.PlayerType HumanOpponent = ChallengeController.PlayerType.MyBot;
 
         public static void DrawButtons(ChallengeController controller)
         {
@@ -17,23 +19,26 @@ namespace ChessChallenge.Application
             float spacing = buttonSize.Y * 1.2f;
             float breakSpacing = spacing * 0.6f;
 
+            buttonPos.X -= buttonSize.X / 2;
             // Game Buttons
-            if (NextButtonInRow("Human vs MyBot", ref buttonPos, spacing, buttonSize))
+            if (NextButtonInRow("Human", ref buttonPos, spacing, buttonSize with {X = buttonSize.X * ((float)4 / 5)}))
             {
+                
                 var whiteType = controller.HumanWasWhiteLastGame
-                    ? ChallengeController.PlayerType.MyBot
+                    ? HumanOpponent
                     : ChallengeController.PlayerType.Human;
                 var blackType = !controller.HumanWasWhiteLastGame
-                    ? ChallengeController.PlayerType.MyBot
+                    ? HumanOpponent
                     : ChallengeController.PlayerType.Human;
                 controller.StartNewGame(whiteType, blackType);
             }
+            buttonPos.X += buttonSize.X / 2;
 
             UIHelper.DrawText("Bot vs Bot Match", buttonPos, UIHelper.ScaleInt(32), 1, Color.WHITE,
                 UIHelper.AlignH.Centre);
             buttonPos.Y += spacing;
 
-            DrawBotPicker(controller, ref buttonPos, spacing, buttonSize);
+            DrawBotPickers(controller, ref buttonPos, spacing, buttonSize);
 
             controller.FenInputBox.Draw(buttonPos, buttonSize with { X = buttonSize.X * (float)1.5 });
             buttonPos.Y += spacing;
@@ -50,13 +55,12 @@ namespace ChessChallenge.Application
                 controller.SetNewGameDuration();
             }
 
-            if (UIHelper.Button($"Skill Level: {controller.botSkill}", new Vector2(650, 662), buttonSize))
+            if (UIHelper.Button($"Skill Level: {controller.botSkill}", new Vector2(640, 662), buttonSize))
             {
                 controller.botSkill = (controller.botSkill + 1) % 21;
                 ChallengeController.PlayerType white = controller.PlayerWhite.PlayerType;
                 ChallengeController.PlayerType black = controller.PlayerBlack.PlayerType;
-                if (white == ChallengeController.PlayerType.MyBot ||
-                    black == ChallengeController.PlayerType.MyBot)
+                if (ChallengeController.UsesSkillLevel.Contains(white) || ChallengeController.UsesSkillLevel.Contains(black))
                 {
                     controller.StartNewGame(white, black);
                 }
@@ -134,10 +138,12 @@ namespace ChessChallenge.Application
             }
         }
 
-        public static void DrawBotPicker(ChallengeController challengeController, ref Vector2 pos, float spacingY,
+        public static void DrawBotPickers(ChallengeController challengeController, ref Vector2 pos, float spacingY,
             Vector2 size)
         {
             Vector2 botPos = pos with { X = pos.X - size.X / 2 };
+            Vector2 humanOpponentPos = pos with { Y = pos.Y - 2 * spacingY, X = pos.X + size.X / 2 };
+            DrawBotPicker(3, humanOpponentPos);
             ChallengeController.PlayerType bot1 = DrawBotPicker(1, botPos);
             botPos.X += size.X;
             ChallengeController.PlayerType bot2 = DrawBotPicker(2, botPos);
@@ -158,7 +164,12 @@ namespace ChessChallenge.Application
                     botType = ref Bot2Type;
                 }
 
-                if (botNumber != 1 && botNumber != 2)
+                if (botNumber == 3)
+                {
+                    botType = ref HumanOpponent;
+                }
+
+                if (botNumber is < 1 or > 3)
                 {
                     throw new Exception("Invalid bot number!");
                 }

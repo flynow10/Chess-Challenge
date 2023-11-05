@@ -33,7 +33,14 @@ namespace ChessChallenge.Application
             MyBotV6,
             MyBotV7,
             MyBotV8,
+            MyBotV9,
         }
+
+        public static readonly PlayerType[] UsesNewTokenLimit =
+            { PlayerType.MyBot, PlayerType.MyBotV8, PlayerType.MyBotV9 };
+
+        public static readonly PlayerType[] UsesSkillLevel =
+            { PlayerType.MyBot, PlayerType.StockFish, PlayerType.MyBotV8, PlayerType.MyBotV9 };
 
         // Game state
         readonly Random rng;
@@ -242,7 +249,7 @@ namespace ChessChallenge.Application
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
                 PlayerType.ExtraEvilBot => new ChessPlayer(new ExtraEvilBot(), type, GameDurationMilliseconds),
                 PlayerType.PawnBot => new ChessPlayer(new PawnBot(), type, GameDurationMilliseconds),
-                PlayerType.StockFish => new ChessPlayer(new UCIBot.UCIBot("/opt/homebrew/bin/stockfish"), type, GameDurationMilliseconds),
+                PlayerType.StockFish => new ChessPlayer(new UCIBot.UCIBot("/opt/homebrew/bin/stockfish", false, botSkill), type, GameDurationMilliseconds),
                 PlayerType.Comet => new ChessPlayer(new UCIBot.UCIBot(Path.Combine(Directory.GetCurrentDirectory(), "src", "Comet", "chess_bot")), type, GameDurationMilliseconds),
                 PlayerType.MyBotV1 => new ChessPlayer(new Version1.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.MyBotV2 => new ChessPlayer(new Version2.MyBot(), type, GameDurationMilliseconds),
@@ -252,6 +259,7 @@ namespace ChessChallenge.Application
                 PlayerType.MyBotV6 => new ChessPlayer(new Version6.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.MyBotV7 => new ChessPlayer(new Version7.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.MyBotV8 => new ChessPlayer(new Version8.MyBot(botSkill), type, GameDurationMilliseconds),
+                PlayerType.MyBotV9 => new ChessPlayer(new Version9.MyBot(botSkill), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };
         }
@@ -505,6 +513,10 @@ namespace ChessChallenge.Application
             boardUI.Draw();
             string nameW = GetPlayerName(PlayerWhite);
             string nameB = GetPlayerName(PlayerBlack);
+            if (UsesSkillLevel.Contains(PlayerWhite.PlayerType))
+                nameW += $" - (Level: {botSkill})";
+            if (UsesSkillLevel.Contains(PlayerBlack.PlayerType))
+                nameB += $" - (Level: {botSkill})";
             boardUI.DrawPlayerNames(nameW, nameB, PlayerWhite.TimeRemainingMs, PlayerBlack.TimeRemainingMs, isPlaying);
         }
 
@@ -521,13 +533,13 @@ namespace ChessChallenge.Application
             int drawnCapacityBars = 0;
             if (firstTokens.total != 0)
             {
-                BotBrainCapacityUI.Draw(GetPlayerName(firstPlayer), firstTokens, MaxTokenCount, totalCapacityBars,
+                BotBrainCapacityUI.Draw(GetPlayerName(firstPlayer), firstTokens, UsesNewTokenLimit.Contains(firstPlayer.PlayerType) ? SecondMaxTokenCount : MaxTokenCount, totalCapacityBars,
                     drawnCapacityBars++);
             }
 
             if (secondTokens.total != 0 && PlayerWhite.PlayerType != PlayerBlack.PlayerType)
             {
-                BotBrainCapacityUI.Draw(GetPlayerName(secondPlayer), secondTokens, MaxTokenCount, totalCapacityBars,
+                BotBrainCapacityUI.Draw(GetPlayerName(secondPlayer), secondTokens, UsesNewTokenLimit.Contains(secondPlayer.PlayerType) ? SecondMaxTokenCount : MaxTokenCount, totalCapacityBars,
                     drawnCapacityBars);
             }
 
