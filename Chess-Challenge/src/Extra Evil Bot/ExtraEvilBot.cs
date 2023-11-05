@@ -22,9 +22,9 @@ public class ExtraEvilBot : IChessBot {
     }
 
     const int entries = (1 << 20);
-    ulong nodes = 0;
-    ulong qnodes = 0;
-    ulong ttHits = 0;
+    ulong nodes = 0; // #DEBUG
+    ulong qnodes = 0; // #DEBUG
+    ulong ttHits = 0; // #DEBUG
     TTEntry[] tt = new TTEntry[entries];
 
     public int getPstVal(int psq) {
@@ -54,7 +54,7 @@ public class ExtraEvilBot : IChessBot {
         return eval;
     }
     public int Search(Board board, Timer timer, int alpha, int beta, int depth, int ply) {
-        nodes++;
+        nodes++; // #DEBUG
         ulong key = board.ZobristKey;
         hashStack[board.PlyCount] = key;
         bool qsearch = (depth <= 0);
@@ -75,10 +75,10 @@ public class ExtraEvilBot : IChessBot {
         if (notRoot && entry.key == key && entry.depth >= depth &&
             (entry.bound == 3 || (entry.bound == 2 && entry.score >= beta) ||
              (entry.bound == 1 && entry.score <= alpha)))
-        {
-            ttHits++;
+        { // #DEBUG
+            ttHits++; // #DEBUG
             return entry.score;
-        }
+        } // #DEBUG
 
         int evl = Evaluate(board);
 
@@ -141,18 +141,18 @@ public class ExtraEvilBot : IChessBot {
     }
     public Move Think(Board board, Timer timer)
     {
-        nodes = 0;
-        qnodes = 0;
-        ttHits = 0;
+        nodes = 0; // #DEBUG
+        qnodes = 0; // #DEBUG
+        ttHits = 0; // #DEBUG
         Move bestMove = Move.NullMove;
-        int ttFilledCount = tt.Count(e => e.move != Move.NullMove);
-        Console.WriteLine($"(ExtraEvilBot) info ttCount {ttFilledCount} ttPercentFilled {ttFilledCount / (float)tt.Length}");
+        int ttFilledCount = tt.Count(e => e.move != Move.NullMove); // #DEBUG
+        Console.WriteLine($"(ExtraEvilBot) info ttCount {ttFilledCount} ttPercentFilled {ttFilledCount / (float)tt.Length}"); // #DEBUG
         for(int depth = 1; depth <= 50; depth++) {
             int score = Search(board, timer, -30000, 30000, depth, 0);
             if(timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30)
                 break;
-            if(timer.MillisecondsElapsedThisTurn != 0)
-                Console.WriteLine($"(ExtraEvilBot) info depth {depth} score cp {score} time {timer.MillisecondsElapsedThisTurn} pv {bestmoveRoot} nodes {nodes} nps {nodes * 1000 / (ulong)timer.MillisecondsElapsedThisTurn} ttHits {ttHits}");
+            if(timer.MillisecondsElapsedThisTurn != 0) // #DEBUG
+                Console.WriteLine($"(ExtraEvilBot) info depth {depth} score cp {score} time {timer.MillisecondsElapsedThisTurn} pv {bestmoveRoot} nodes {nodes} nps {nodes * 1000 / (ulong)timer.MillisecondsElapsedThisTurn} ttHits {ttHits}"); // #DEBUG
             bestMove = bestmoveRoot;
         }
         return bestMove;
