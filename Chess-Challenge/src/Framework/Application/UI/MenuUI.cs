@@ -55,9 +55,14 @@ namespace ChessChallenge.Application
                 controller.SetNewGameDuration();
             }
 
-            if (UIHelper.Button($"Skill Level: {controller.botSkill}", new Vector2(640, 662), buttonSize))
+            Vector2 skillLevelPos = new Vector2(640, 662);
+            bool rightClickSkill = UIHelper.RightClickButton(skillLevelPos, buttonSize);
+            if (UIHelper.Button($"Skill Level: {controller.botSkill}", skillLevelPos, buttonSize) || rightClickSkill)
             {
-                controller.botSkill = (controller.botSkill + 1) % 21;
+                if (rightClickSkill)
+                    controller.botSkill = controller.botSkill == 0 ? 20 : controller.botSkill - 1;
+                else
+                    controller.botSkill = (controller.botSkill + 1) % 21;
                 ChallengeController.PlayerType white = controller.PlayerWhite.PlayerType;
                 ChallengeController.PlayerType black = controller.PlayerBlack.PlayerType;
                 if (ChallengeController.UsesSkillLevel.Contains(white) || ChallengeController.UsesSkillLevel.Contains(black))
@@ -174,22 +179,33 @@ namespace ChessChallenge.Application
                     throw new Exception("Invalid bot number!");
                 }
 
-                if (UIHelper.Button(botType.ToString(), pos, size with { X = size.X * ((float)4 / 5) }))
+                Vector2 buttonSize = size with { X = size.X * ((float)4 / 5) };
+                if (UIHelper.Button(botType.ToString(), pos, buttonSize))
                 {
                     botType = NextBotType(botType);
+                }
+
+                if (UIHelper.RightClickButton(pos, buttonSize))
+                {
+                    botType = NextBotType(botType, -1);
                 }
 
                 return botType;
             }
 
-            ChallengeController.PlayerType NextBotType(ChallengeController.PlayerType currentType)
+            ChallengeController.PlayerType NextBotType(ChallengeController.PlayerType currentType, int direction = 1)
             {
                 ChallengeController.PlayerType nextType = currentType;
                 while (nextType == currentType || nextType == ChallengeController.PlayerType.Human)
                 {
-                    ChallengeController.PlayerType[] Arr = Enum.GetValues<ChallengeController.PlayerType>();
-                    int index = Array.IndexOf(Arr, nextType) + 1;
-                    nextType = Arr.Length == index ? Arr[0] : Arr[index];
+                    ChallengeController.PlayerType[] types = Enum.GetValues<ChallengeController.PlayerType>();
+                    int index = Array.IndexOf(types, nextType) + direction;
+                    if (index == -1)
+                        nextType = types[^1];
+                    else if (index == types.Length)
+                        nextType = types[0];
+                    else 
+                        nextType = types[index];
                 }
 
                 return nextType;

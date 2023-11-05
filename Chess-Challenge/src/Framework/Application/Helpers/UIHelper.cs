@@ -98,6 +98,15 @@ namespace ChessChallenge.Application
             return pressedThisFrame;
         }
 
+        public static bool RightClickButton(Vector2 centre, Vector2 size)
+        {
+            Rectangle rec = new(centre.X - size.X / 2, centre.Y - size.Y / 2, size.X, size.Y);
+            bool mouseOver = MouseInRect(rec);
+            bool pressed = mouseOver && Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_RIGHT);
+            bool pressedThisFrame = pressed && Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_RIGHT);
+            return pressedThisFrame;
+        }
+
         static bool MouseInRect(Rectangle rec)
         {
             Vector2 mousePos = Raylib.GetMousePosition();
