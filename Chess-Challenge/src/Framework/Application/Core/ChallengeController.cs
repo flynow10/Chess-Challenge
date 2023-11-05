@@ -31,7 +31,8 @@ namespace ChessChallenge.Application
             MyBotV4,
             MyBotV5,
             MyBotV6,
-            MyBotV7
+            MyBotV7,
+            MyBotV8,
         }
 
         // Game state
@@ -69,6 +70,7 @@ namespace ChessChallenge.Application
         readonly Dictionary<PlayerType, TokenCount> tokenCounts = new();
         readonly StringBuilder pgns;
         public readonly UIHelper.InputBox FenInputBox = new("Click to Paste Fen String");
+        public int botSkill = 20;
 
         public ChallengeController()
         {
@@ -236,7 +238,7 @@ namespace ChessChallenge.Application
         {
             return type switch
             {
-                PlayerType.MyBot => new ChessPlayer(new MyBot.MyBot(), type, GameDurationMilliseconds),
+                PlayerType.MyBot => new ChessPlayer(new MyBot.MyBot(botSkill), type, GameDurationMilliseconds),
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
                 PlayerType.ExtraEvilBot => new ChessPlayer(new ExtraEvilBot(), type, GameDurationMilliseconds),
                 PlayerType.PawnBot => new ChessPlayer(new PawnBot(), type, GameDurationMilliseconds),
@@ -249,6 +251,7 @@ namespace ChessChallenge.Application
                 PlayerType.MyBotV5 => new ChessPlayer(new Version5.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.MyBotV6 => new ChessPlayer(new Version6.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.MyBotV7 => new ChessPlayer(new Version7.MyBot(), type, GameDurationMilliseconds),
+                PlayerType.MyBotV8 => new ChessPlayer(new Version8.MyBot(botSkill), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };
         }

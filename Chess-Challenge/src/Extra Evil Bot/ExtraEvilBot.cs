@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using ChessChallenge.API;
 
@@ -22,6 +23,8 @@ public class ExtraEvilBot : IChessBot {
 
     const int entries = (1 << 20);
     ulong nodes = 0;
+    ulong qnodes = 0;
+    ulong ttHits = 0;
     TTEntry[] tt = new TTEntry[entries];
 
     public int getPstVal(int psq) {
@@ -55,6 +58,8 @@ public class ExtraEvilBot : IChessBot {
         ulong key = board.ZobristKey;
         hashStack[board.PlyCount] = key;
         bool qsearch = (depth <= 0);
+        if (qsearch)
+            qnodes++;
         bool notRoot = (ply > 0);
         int best = -30000;
 
@@ -67,9 +72,13 @@ public class ExtraEvilBot : IChessBot {
 
         TTEntry entry = tt[key % entries];
 
-        if(notRoot && entry.key == key && entry.depth >= depth &&
-        (entry.bound == 3 || (entry.bound == 2 && entry.score >= beta) || (entry.bound == 1 && entry.score <= alpha)))
+        if (notRoot && entry.key == key && entry.depth >= depth &&
+            (entry.bound == 3 || (entry.bound == 2 && entry.score >= beta) ||
+             (entry.bound == 1 && entry.score <= alpha)))
+        {
+            ttHits++;
             return entry.score;
+        }
 
         int evl = Evaluate(board);
 
@@ -133,13 +142,17 @@ public class ExtraEvilBot : IChessBot {
     public Move Think(Board board, Timer timer)
     {
         nodes = 0;
+        qnodes = 0;
+        ttHits = 0;
         Move bestMove = Move.NullMove;
+        int ttFilledCount = tt.Count(e => e.move != Move.NullMove);
+        Console.WriteLine($"(ExtraEvilBot) info ttCount {ttFilledCount} ttPercentFilled {ttFilledCount / (float)tt.Length}");
         for(int depth = 1; depth <= 50; depth++) {
             int score = Search(board, timer, -30000, 30000, depth, 0);
             if(timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30)
                 break;
             if(timer.MillisecondsElapsedThisTurn != 0)
-                Console.WriteLine($"info depth {depth} score cp {score} time {timer.MillisecondsElapsedThisTurn} pv {bestmoveRoot} nodes {nodes} nps {nodes * 1000 / (ulong)timer.MillisecondsElapsedThisTurn}");
+                Console.WriteLine($"(ExtraEvilBot) info depth {depth} score cp {score} time {timer.MillisecondsElapsedThisTurn} pv {bestmoveRoot} nodes {nodes} nps {nodes * 1000 / (ulong)timer.MillisecondsElapsedThisTurn} ttHits {ttHits}");
             bestMove = bestmoveRoot;
         }
         return bestMove;

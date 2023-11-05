@@ -6,7 +6,6 @@ using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ChessChallenge.Chess;
-using ChessChallenge.MyBot;
 
 namespace ChessChallenge.Application
 {
@@ -68,9 +67,6 @@ namespace ChessChallenge.Application
                         return;
                     case "program":
                         Tester.Run(false);
-                        return;
-                    case "book":
-                        OpeningBook.Run();
                         return;
                 }
             }

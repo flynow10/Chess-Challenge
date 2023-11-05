@@ -1,6 +1,7 @@
 using ChessChallenge.Chess;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -12,27 +13,36 @@ using Move = ChessChallenge.Chess.Move;
 
 namespace ChessChallenge.MyBot;
 
-public static class Tester {
+public static class Tester
+{
     const bool throwOnAssertFail = false;
-    const bool runMateTests = true;
+    const bool runMateTests = false;
 
     private static MiniChallengeManager controller = new();
-    
+
     static bool anyFailed;
     private static bool humanPlaysOpponent;
+
     public static void Run(bool humanPlaysOpponent = false)
     {
         anyFailed = false;
         Tester.humanPlaysOpponent = humanPlaysOpponent;
-
         if (runMateTests)
         {
             MateInTwoTests();
             MateInThreeTests();
             MateInFourTests();
         }
-        // PieceSquareTablesTest();
-        EvaluationTest();
+
+        // StockFishEvalComparisonTest();
+        EvaluationBenchmark(0);
+        EvaluationBenchmark(EvaluationFlags.UseMobility);
+        EvaluationBenchmark(EvaluationFlags.UseKingShield);
+        EvaluationBenchmark(EvaluationFlags.UseKingTropism);
+        EvaluationBenchmark(EvaluationFlags.UsePawnBonuses);
+        EvaluationBenchmark(EvaluationFlags.UseLowMaterialCutoffs);
+        EvaluationBenchmark(EvaluationFlags.UseEvalTT);
+        EvaluationBenchmark(EvaluationFlags.UseKingShield | EvaluationFlags.UseMobility | EvaluationFlags.UseKingTropism | EvaluationFlags.UsePawnBonuses | EvaluationFlags.UseLowMaterialCutoffs | EvaluationFlags.UseEvalTT);
 
         if (anyFailed)
         {
@@ -65,10 +75,11 @@ public static class Tester {
             }
             else break;
         }
+
         return board;
     }
-    
-    static void EvaluationTest()
+
+    static void StockFishEvalComparisonTest()
     {
         WriteWithCol("Running Stockfish Evaluation Comparison Tests", ConsoleColor.Cyan);
         MyBot bot = new();
@@ -77,11 +88,11 @@ public static class Tester {
         UCIBot.UCIBot stockfish = new UCIBot.UCIBot(UCIBot.UCIBot.STOCKFISH_PATH, false);
         Dictionary<string, int> gamePhaseMoveCounts =
             new() { { "Early Game", 15 }, { "Mid Game", 25 }, { "End Game", 50 } };
-        
+
         List<string> cumulativeStatsArrays = new();
         string greatestDistanceStats = "";
         int greatestDistance = 0;
-        foreach (KeyValuePair<string,int> gamePhase in gamePhaseMoveCounts)
+        foreach (KeyValuePair<string, int> gamePhase in gamePhaseMoveCounts)
         {
             WriteWithCol($"Testing {gamePhase.Key} positions", ConsoleColor.Cyan);
             string fileName;
@@ -101,7 +112,8 @@ public static class Tester {
                     break;
             }
 
-            string[] fens = File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "TestData", fileName + ".txt")).Split("\n");
+            string[] fens = File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "TestData", fileName + ".txt"))
+                .Split("\n");
             int totalTestCount = fens.Length;
             int skippedTestCount = 0;
             int failedTestCount = 0;
@@ -114,15 +126,17 @@ public static class Tester {
                 int stockfishEval = stockfish.EvaluatePosition(apiBoard);
                 int myBotEval = (int)evaluatePositionMove.Invoke(bot, new object?[] { apiBoard })!;
                 int difference = Math.Abs(myBotEval - stockfishEval);
-                float percentError = Math.Abs((float)stockfishEval - myBotEval) / (Math.Abs((float)stockfishEval)) * 100;
+                float percentError =
+                    Math.Abs((float)stockfishEval - myBotEval) / (Math.Abs((float)stockfishEval)) * 100;
                 WriteWithCol($"Position: {apiBoard.GetFenString()}", ConsoleColor.DarkGray);
-                string stats = $"Stockfish: {stockfishEval} cp; MyBot: {myBotEval} cp; Difference: {difference}; Percent Error: {percentError}%";
+                string stats =
+                    $"Stockfish: {stockfishEval} cp; MyBot: {myBotEval} cp; Difference: {difference}; Percent Error: {percentError}%";
                 if (Math.Abs(stockfishEval) > 49000)
                 {
                     skippedTestCount++;
                     continue;
                 }
-                
+
                 if (difference > greatestDistance)
                 {
                     greatestDistance = difference;
@@ -148,9 +162,10 @@ public static class Tester {
             }
 
             int passedTestCount = adjustedTotalTestCount - failedTestCount;
-            cumulativeStatsArrays.Add($"{gamePhase.Key}:\nSkipped Tests: {skippedTestCount}; Successful Tests: {passedTestCount}; Failed Tests: {failedTestCount}; Ratio (Success/Failed): {(float)passedTestCount/failedTestCount}\nAverage Difference: {(float)differenceSum/adjustedTotalTestCount}");
+            cumulativeStatsArrays.Add(
+                $"{gamePhase.Key}:\nSkipped Tests: {skippedTestCount}; Successful Tests: {passedTestCount}; Failed Tests: {failedTestCount}; Ratio (Success/Failed): {(float)passedTestCount / failedTestCount}\nAverage Difference: {(float)differenceSum / adjustedTotalTestCount}");
         }
-        
+
         Console.WriteLine($"Greatest Difference: {greatestDistance}\nStats: {greatestDistanceStats}");
 
         string fileData = "";
@@ -168,34 +183,26 @@ public static class Tester {
             sw.Write("\n" + fileData);
         }
     }
-
-    static void PieceSquareTablesTest()
+    
+    static void EvaluationBenchmark(EvaluationFlags flags)
     {
-        var bot = new MyBot();
-        var getPieceSquareValueMethod =
-            typeof(MyBot).GetMethod("GetPieceSquareValue", BindingFlags.Instance | BindingFlags.NonPublic);
-
-        for (PieceType pieceType = 0; pieceType < PieceType.King + 1; pieceType++)
+        Stopwatch sw = new();
+        Random rng = new();
+        Evaluate evaluate = new Evaluate(flags);
+        int testCount = 10000;
+        for (int i = 0; i < testCount; i++)
         {
-            if(pieceType < PieceType.King)
-                Console.WriteLine($"{(pieceType + 1).ToString()} Piece Square Table");
-            else
-                Console.WriteLine("King End Piece Square Table");
-            var table = new int[64].Select((_, index) =>
-            {
-                var square = new Square(index);
-                square = new Square((7 - square.Rank) * 8 + square.File);
-                return (int)getPieceSquareValueMethod.Invoke(bot, new object?[]{pieceType, square.Index})!;
-            }).ToArray();
-            
-            for (int i = 0; i < table.Length; i++)
-            {
-                if(i % 8 == 0)
-                    Console.WriteLine();
-                Console.Write($"{table[i]}, ");
-            }
-            Console.WriteLine();
+            int moveCount = rng.Next(5, 30);
+            Board board = RandomBoard(moveCount);
+            API.Board apiBoard = new(board);
+            sw.Start();
+            evaluate.EvaluatePosition(apiBoard);
+            sw.Stop();
         }
+        WriteWithCol("Evaluation Benchmarks:", ConsoleColor.Cyan);
+        Console.WriteLine($"Flags: {flags.ToString()}");
+        Console.WriteLine($"Test count: {testCount} Total time: {sw.ElapsedMilliseconds}ms Average time per test: {sw.ElapsedMilliseconds / (double)testCount}ms");
+        
     }
 
     static void MateInTwoTests()
@@ -247,6 +254,7 @@ public static class Tester {
         };
         MateTest(mateInFourFens, 4);
     }
+
     static void MateTest(string[] fens, int mateDistance, bool forceQuickest = true)
     {
         foreach (string fenString in fens)
@@ -261,7 +269,7 @@ public static class Tester {
                     controller.PlayMove(controller.GetNextMove());
                     if (controller.GameResult != GameResult.InProgress)
                         break;
-                    if (!Assert(moveIndex / 2 < mateDistance-1, "Mate move limit reached"))
+                    if (!Assert(moveIndex / 2 < mateDistance - 1, "Mate move limit reached"))
                         break;
                 }
             }
@@ -270,7 +278,10 @@ public static class Tester {
                 controller.PlayMatch(fenString);
             }
 
-            Assert(!Arbiter.IsWinResult(controller.GameResult) || (Arbiter.IsWinResult(controller.GameResult) && controller.Board.IsWhiteToMove != controller.BotPlaysWhite), "Wrong player won!");
+            Assert(
+                !Arbiter.IsWinResult(controller.GameResult) || (Arbiter.IsWinResult(controller.GameResult) &&
+                                                                controller.Board.IsWhiteToMove !=
+                                                                controller.BotPlaysWhite), "Wrong player won!");
             Assert(!Arbiter.IsDrawResult(controller.GameResult), "Game ended in a draw");
         }
     }
@@ -312,11 +323,11 @@ public static class Tester {
         public MyBot Bot;
         public UCIBot.UCIBot Stockfish;
         public bool BotPlaysWhite = true;
-        
+
         public Board Board;
         public readonly MoveGenerator MoveGenerator = new();
         public GameResult GameResult;
-        
+
         private readonly Random rng = new();
 
         public void StartMatch(string fen, bool? botPlaysWhite = null)
@@ -326,16 +337,16 @@ public static class Tester {
             Bot = new MyBot();
             Stockfish = new UCIBot.UCIBot(UCIBot.UCIBot.STOCKFISH_PATH, false);
             GameResult = GameResult.NotStarted;
-            if (botPlaysWhite == null)
+            if (!botPlaysWhite.HasValue)
             {
                 BotPlaysWhite = Board.IsWhiteToMove;
             }
             else
             {
-                BotPlaysWhite = (bool)botPlaysWhite;
+                BotPlaysWhite = botPlaysWhite.Value;
             }
         }
-        
+
         public GameResult PlayMatch(string fen, bool? botPlaysWhite = null)
         {
             StartMatch(fen, botPlaysWhite);
@@ -346,7 +357,7 @@ public static class Tester {
 
             return GameResult;
         }
-        
+
         public void PlayMove(Move move)
         {
             Board.MakeMove(move, false);
@@ -375,7 +386,7 @@ public static class Tester {
 
             return move;
         }
-        
+
         Move GetBotMove(MiniBotType botType = MiniBotType.MyBot)
         {
             API.Board botBoard = new(Board);
@@ -383,7 +394,8 @@ public static class Tester {
             {
                 int timeSpentThinking = botType == MiniBotType.MyBot ? MyTimeSpentThinking : StockfishTimeSpentThinking;
                 IChessBot bot = botType == MiniBotType.MyBot ? Bot : Stockfish;
-                Timer timer = new(GameDurationMilliseconds - timeSpentThinking, GameDurationMilliseconds, GameDurationMilliseconds);
+                Timer timer = new(GameDurationMilliseconds - timeSpentThinking, GameDurationMilliseconds,
+                    GameDurationMilliseconds);
                 API.Move move = bot.Think(botBoard, timer);
                 if (botType == MiniBotType.MyBot)
                 {
@@ -393,6 +405,7 @@ public static class Tester {
                 {
                     StockfishTimeSpentThinking += timer.MillisecondsElapsedThisTurn;
                 }
+
                 return new Move(move.RawValue);
             }
             catch (Exception e)
@@ -402,6 +415,7 @@ public static class Tester {
 
             return Move.NullMove;
         }
+
         Move GetHumanMove()
         {
             Move opponentMove = Move.NullMove;
@@ -418,6 +432,7 @@ public static class Tester {
                     Console.WriteLine(e);
                     continue;
                 }
+
                 if (moveString != null)
                 {
                     opponentMove = MoveUtility.GetMoveFromUCIName(moveString, Board);
@@ -432,7 +447,7 @@ public static class Tester {
             var legalMoves = MoveGenerator.GenerateMoves(Board);
             return legalMoves[rng.Next(legalMoves.Length)];
         }
-        
+
         bool IsLegal(Move givenMove)
         {
             var moves = MoveGenerator.GenerateMoves(Board);

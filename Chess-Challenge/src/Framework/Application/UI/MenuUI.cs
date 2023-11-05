@@ -50,6 +50,18 @@ namespace ChessChallenge.Application
                 controller.SetNewGameDuration();
             }
 
+            if (UIHelper.Button($"Skill Level: {controller.botSkill}", new Vector2(650, 662), buttonSize))
+            {
+                controller.botSkill = (controller.botSkill + 1) % 21;
+                ChallengeController.PlayerType white = controller.PlayerWhite.PlayerType;
+                ChallengeController.PlayerType black = controller.PlayerBlack.PlayerType;
+                if (white == ChallengeController.PlayerType.MyBot ||
+                    black == ChallengeController.PlayerType.MyBot)
+                {
+                    controller.StartNewGame(white, black);
+                }
+            }
+
             // Page buttons
             buttonPos.Y += breakSpacing;
 
