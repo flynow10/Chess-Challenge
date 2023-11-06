@@ -250,7 +250,7 @@ namespace ChessChallenge.Application
                 PlayerType.ExtraEvilBot => new ChessPlayer(new ExtraEvilBot(), type, GameDurationMilliseconds),
                 PlayerType.PawnBot => new ChessPlayer(new PawnBot(), type, GameDurationMilliseconds),
                 PlayerType.StockFish => new ChessPlayer(new UCIBot.UCIBot("/opt/homebrew/bin/stockfish", false, botSkill), type, GameDurationMilliseconds),
-                PlayerType.Comet => new ChessPlayer(new UCIBot.UCIBot(Path.Combine(Directory.GetCurrentDirectory(), "src", "Comet", "chess_bot")), type, GameDurationMilliseconds),
+                PlayerType.Comet => new ChessPlayer(new UCIBot.UCIBot(Path.Combine(FileHelper.GetSrcDir()!, "Comet", "chess_bot")), type, GameDurationMilliseconds),
                 PlayerType.MyBotV1 => new ChessPlayer(new Version1.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.MyBotV2 => new ChessPlayer(new Version2.MyBot(), type, GameDurationMilliseconds),
                 PlayerType.MyBotV3 => new ChessPlayer(new Version3.MyBot(), type, GameDurationMilliseconds),
@@ -285,19 +285,34 @@ namespace ChessChallenge.Application
 
         static TokenCount GetMyBotTokenCount()
         {
-            string path = Path.Combine(Directory.GetCurrentDirectory(), "src", "My Bot", "MyBot.cs");
+            string? srcDir = FileHelper.GetSrcDir();
+            if (srcDir == null)
+            {
+                return new TokenCount(0, 0);
+            }
+            string path = Path.Combine(srcDir, "My Bot", "MyBot.cs");
             return GetTokenCount(path);
         }
 
         static TokenCount GetExtraEvilBotTokenCount()
         {
-            string path = Path.Combine(Directory.GetCurrentDirectory(), "src", "Extra Evil Bot", "ExtraEvilBot.cs");
+            string? srcDir = FileHelper.GetSrcDir();
+            if (srcDir == null)
+            {
+                return new TokenCount(0, 0);
+            }
+            string path = Path.Combine(srcDir, "Extra Evil Bot", "ExtraEvilBot.cs");
             return GetTokenCount(path);
         }
 
         static TokenCount GetVersionTokenCount(int version)
         {
-            string path = Path.Combine(Directory.GetCurrentDirectory(), "src", "Versions", "MyBotV" + version,
+            string? srcDir = FileHelper.GetSrcDir();
+            if (srcDir == null)
+            {
+                return new TokenCount(0, 0);
+            }
+            string path = Path.Combine(srcDir, "Versions", "MyBotV" + version,
                 "MyBot.cs");
             if (!File.Exists(path))
             {

@@ -38,9 +38,23 @@ namespace ChessChallenge.Application
             return uniqueName + fileExtension;
         }
 
+        public static string? GetRootDir()
+        {
+            string rootDir = AppContext.BaseDirectory;
+            return rootDir;
+        }
+        public static string? GetSrcDir()
+        {
+            string? rootDir = GetRootDir();
+            if (rootDir == null) return null;
+            return Path.Combine(rootDir, "src");
+        }
+
         public static string GetResourcePath(params string[] localPath)
         {
-            return Path.Combine(Directory.GetCurrentDirectory(), "resources", Path.Combine(localPath));
+            string? rootDir = GetRootDir();
+            if (rootDir == null) throw new Exception($"Couldn't load resource: {localPath}");
+            return Path.Combine(rootDir, "resources", Path.Combine(localPath));
         }
 
         public static string ReadResourceFile(string localPath)
