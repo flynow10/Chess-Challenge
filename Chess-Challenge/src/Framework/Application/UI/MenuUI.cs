@@ -55,22 +55,6 @@ namespace ChessChallenge.Application
                 controller.SetNewGameDuration();
             }
 
-            Vector2 skillLevelPos = new Vector2(640, 662);
-            bool rightClickSkill = UIHelper.RightClickButton(skillLevelPos, buttonSize);
-            if (UIHelper.Button($"Skill Level: {controller.botSkill}", skillLevelPos, buttonSize) || rightClickSkill)
-            {
-                if (rightClickSkill)
-                    controller.botSkill = controller.botSkill == 0 ? 20 : controller.botSkill - 1;
-                else
-                    controller.botSkill = (controller.botSkill + 1) % 21;
-                ChallengeController.PlayerType white = controller.PlayerWhite.PlayerType;
-                ChallengeController.PlayerType black = controller.PlayerBlack.PlayerType;
-                if (ChallengeController.UsesSkillLevel.Contains(white) || ChallengeController.UsesSkillLevel.Contains(black))
-                {
-                    controller.StartNewGame(white, black);
-                }
-            }
-
             // Page buttons
             buttonPos.Y += breakSpacing;
 
@@ -133,6 +117,22 @@ namespace ChessChallenge.Application
             if(NextButtonInRow("Flip Board", ref buttonPos, spacing, buttonSize))
             {
                 controller.FlipPerspective();
+            }
+            
+            Vector2 skillLevelPos = UIHelper.Scale(new Vector2(1630, 50));
+            bool rightClickSkill = UIHelper.RightClickButton(skillLevelPos, buttonSize);
+            if (UIHelper.Button($"Skill Level: {controller.botSkill}", skillLevelPos, buttonSize) || rightClickSkill)
+            {
+                if (rightClickSkill)
+                    controller.botSkill = controller.botSkill == 0 ? 20 : controller.botSkill - 1;
+                else
+                    controller.botSkill = (controller.botSkill + 1) % 21;
+                ChallengeController.PlayerType white = controller.PlayerWhite.PlayerType;
+                ChallengeController.PlayerType black = controller.PlayerBlack.PlayerType;
+                if (ChallengeController.UsesSkillLevel.Contains(white) || ChallengeController.UsesSkillLevel.Contains(black))
+                {
+                    controller.StartNewGame(white, black);
+                }
             }
 
             bool NextButtonInRow(string name, ref Vector2 pos, float spacingY, Vector2 size)
