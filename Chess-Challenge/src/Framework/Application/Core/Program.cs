@@ -89,8 +89,33 @@ namespace ChessChallenge.Application
 
             ChallengeController controller = new();
 
+            bool cmdPressed = false;
+            bool qPressed = false;
             while (!Raylib.WindowShouldClose())
             {
+                if (Raylib.IsKeyPressed(KeyboardKey.KEY_LEFT_SUPER))
+                {
+                    if (!qPressed)
+                    {
+                        cmdPressed = true;
+                    }
+                }
+
+                if (Raylib.IsKeyReleased(KeyboardKey.KEY_LEFT_SUPER))
+                {
+                    cmdPressed = false;
+                }
+
+                if (Raylib.IsKeyPressed(KeyboardKey.KEY_Q))
+                {
+                    if (cmdPressed) break;
+                    qPressed = true;
+                }
+
+                if (Raylib.IsKeyReleased(KeyboardKey.KEY_Q))
+                {
+                    qPressed = false;
+                }
                 Raylib.BeginDrawing();
                 Raylib.ClearBackground(new Color(22, 22, 22, 255));
                 Raylib.BeginMode2D(cam);
