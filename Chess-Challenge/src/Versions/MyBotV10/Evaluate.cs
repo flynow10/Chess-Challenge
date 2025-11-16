@@ -3,7 +3,7 @@ using ChessChallenge.API;
 using ChessChallenge.Chess;
 using Board = ChessChallenge.API.Board;
 
-namespace ChessChallenge.MyBot;
+namespace ChessChallenge.MyBotV10;
 
 public class Evaluate
 {

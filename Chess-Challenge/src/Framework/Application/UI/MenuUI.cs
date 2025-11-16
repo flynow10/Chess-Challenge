@@ -8,9 +8,9 @@ namespace ChessChallenge.Application
 {
     public static class MenuUI
     {
-        public static ChallengeController.PlayerType Bot1Type = ChallengeController.PlayerType.MyBot;
-        public static ChallengeController.PlayerType Bot2Type = ChallengeController.PlayerType.MyBot;
-        public static ChallengeController.PlayerType HumanOpponent = ChallengeController.PlayerType.MyBot;
+        public static PlayerType Bot1Type = PlayerType.MyBot;
+        public static PlayerType Bot2Type = PlayerType.MyBot;
+        public static PlayerType HumanOpponent = PlayerType.MyBot;
 
         public static void DrawButtons(ChallengeController controller)
         {
@@ -26,10 +26,10 @@ namespace ChessChallenge.Application
                 
                 var whiteType = controller.HumanWasWhiteLastGame
                     ? HumanOpponent
-                    : ChallengeController.PlayerType.Human;
+                    : PlayerType.Human;
                 var blackType = !controller.HumanWasWhiteLastGame
                     ? HumanOpponent
-                    : ChallengeController.PlayerType.Human;
+                    : PlayerType.Human;
                 controller.StartNewGame(whiteType, blackType);
             }
             buttonPos.X += buttonSize.X / 2;
@@ -131,8 +131,8 @@ namespace ChessChallenge.Application
                         controller.botSkill = controller.botSkill == 0 ? 20 : controller.botSkill - 1;
                     else
                         controller.botSkill = (controller.botSkill + 1) % 21;
-                    ChallengeController.PlayerType white = controller.PlayerWhite.PlayerType;
-                    ChallengeController.PlayerType black = controller.PlayerBlack.PlayerType;
+                    PlayerType white = controller.PlayerWhite.PlayerType;
+                    PlayerType black = controller.PlayerBlack.PlayerType;
                     if (ChallengeController.UsesSkillLevel.Contains(white) || ChallengeController.UsesSkillLevel.Contains(black))
                     {
                         controller.StartNewGame(white, black);
@@ -154,9 +154,9 @@ namespace ChessChallenge.Application
             Vector2 botPos = pos with { X = pos.X - size.X / 2 };
             Vector2 humanOpponentPos = pos with { Y = pos.Y - 2 * spacingY, X = pos.X + size.X / 2 };
             DrawBotPicker(3, humanOpponentPos);
-            ChallengeController.PlayerType bot1 = DrawBotPicker(1, botPos);
+            PlayerType bot1 = DrawBotPicker(1, botPos);
             botPos.X += size.X;
-            ChallengeController.PlayerType bot2 = DrawBotPicker(2, botPos);
+            PlayerType bot2 = DrawBotPicker(2, botPos);
             pos.Y += spacingY;
 
             if (UIHelper.Button("Start", pos, size))
@@ -166,9 +166,9 @@ namespace ChessChallenge.Application
 
             pos.Y += spacingY;
 
-            ChallengeController.PlayerType DrawBotPicker(int botNumber, Vector2 pos)
+            PlayerType DrawBotPicker(int botNumber, Vector2 pos)
             {
-                ref ChallengeController.PlayerType botType = ref Bot1Type;
+                ref PlayerType botType = ref Bot1Type;
                 if (botNumber == 2)
                 {
                     botType = ref Bot2Type;
@@ -198,12 +198,12 @@ namespace ChessChallenge.Application
                 return botType;
             }
 
-            ChallengeController.PlayerType NextBotType(ChallengeController.PlayerType currentType, int direction = 1)
+            PlayerType NextBotType(PlayerType currentType, int direction = 1)
             {
-                ChallengeController.PlayerType nextType = currentType;
-                while (nextType == currentType || nextType == ChallengeController.PlayerType.Human)
+                PlayerType nextType = currentType;
+                while (nextType == currentType || nextType == PlayerType.Human)
                 {
-                    ChallengeController.PlayerType[] types = Enum.GetValues<ChallengeController.PlayerType>();
+                    PlayerType[] types = Enum.GetValues<PlayerType>();
                     int index = Array.IndexOf(types, nextType) + direction;
                     if (index == -1)
                         nextType = types[^1];

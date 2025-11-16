@@ -1,6 +1,6 @@
 using ChessChallenge.API;
 
-namespace ChessChallenge.MyBot;
+namespace ChessChallenge.MyBotV10;
 
 public static class TimingFunctions
 {

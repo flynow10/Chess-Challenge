@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using ChessChallenge.API;
 
-namespace ChessChallenge.MyBot;
+namespace ChessChallenge.MyBotV10;
 
 public class Search
 {

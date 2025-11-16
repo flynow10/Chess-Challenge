@@ -19,33 +19,12 @@ namespace ChessChallenge.Application
 {
     public class ChallengeController
     {
-        public enum PlayerType
-        {
-            Human,
-            MyBot,
-            EvilBot,
-            ExtraEvilBot,
-            PawnBot,
-            StockFish,
-            StockFishV3,
-            Boychesser,
-            Comet,
-            MyBotV1,
-            MyBotV2,
-            MyBotV3,
-            MyBotV4,
-            MyBotV5,
-            MyBotV6,
-            MyBotV7,
-            MyBotV8,
-            MyBotV9,
-        }
 
         public static readonly PlayerType[] UsesNewTokenLimit =
-            { PlayerType.MyBot, PlayerType.MyBotV8, PlayerType.MyBotV9 };
+            { PlayerType.MyBotV8, PlayerType.MyBotV9 };
 
         public static readonly PlayerType[] UsesSkillLevel =
-            { PlayerType.MyBot, PlayerType.StockFish, PlayerType.MyBotV8, PlayerType.MyBotV9 };
+            { PlayerType.StockFish, PlayerType.MyBotV8, PlayerType.MyBotV9, PlayerType.MyBotV10 };
 
         // Game state
         readonly Random rng;
@@ -255,7 +234,7 @@ namespace ChessChallenge.Application
 
             IChessBot bot = type switch
             {
-                PlayerType.MyBot => new MyBot.MyBot(botSkill),
+                PlayerType.MyBot => new MyBot.MyBot(),
                 PlayerType.EvilBot => new EvilBot(),
                 PlayerType.ExtraEvilBot => new ExtraEvilBot(),
                 PlayerType.PawnBot => new PawnBot(),
@@ -273,6 +252,7 @@ namespace ChessChallenge.Application
                 PlayerType.MyBotV7 => new Version7.MyBot(),
                 PlayerType.MyBotV8 => new Version8.MyBot(botSkill),
                 PlayerType.MyBotV9 => new Version9.MyBot(botSkill),
+                PlayerType.MyBotV10 => new MyBotV10.MyBot(botSkill),
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
             };
             

@@ -1,6 +1,6 @@
 using ChessChallenge.API;
 
-namespace ChessChallenge.MyBot;
+namespace ChessChallenge.MyBotV10;
 
 public record struct TTEntry(ulong Key, Move Move, int Depth, int Eval, NodeType NodeType);
 

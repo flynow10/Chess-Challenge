@@ -1,6 +1,6 @@
 using System;
 
-namespace ChessChallenge.MyBot;
+namespace ChessChallenge.MyBotV10;
 
 [Flags]
 public enum EvaluationFlags : ulong
