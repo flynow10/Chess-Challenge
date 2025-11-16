@@ -20,16 +20,8 @@ namespace ChessChallenge.Application
             {
                 switch (args[0])
                 {
-                    case "bot":
-                        bool humanOpponent = false;
-                        if (args.Length > 1)
-                        {
-                            if ((new List<string> { "human" }).Contains(args[1].ToLower()))
-                            {
-                                humanOpponent = true;
-                            }
-                        }
-                        MyBot.Tester.Run(humanOpponent);
+                    case "bot-test":
+                        MyBot.Tester.Run();
                         return;
                     case "fens":
                         foreach (var moveCount in new[] {15,25,50})
