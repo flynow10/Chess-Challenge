@@ -121,17 +121,22 @@ namespace ChessChallenge.Application
             
             Vector2 skillLevelPos = UIHelper.Scale(new Vector2(1630, 50));
             bool rightClickSkill = UIHelper.RightClickButton(skillLevelPos, buttonSize);
-            if (UIHelper.Button($"Skill Level: {controller.botSkill}", skillLevelPos, buttonSize) || rightClickSkill)
+            if (ChallengeController.UsesSkillLevel.Contains(Bot1Type) ||
+                ChallengeController.UsesSkillLevel.Contains(Bot2Type) ||
+                ChallengeController.UsesSkillLevel.Contains(HumanOpponent))
             {
-                if (rightClickSkill)
-                    controller.botSkill = controller.botSkill == 0 ? 20 : controller.botSkill - 1;
-                else
-                    controller.botSkill = (controller.botSkill + 1) % 21;
-                ChallengeController.PlayerType white = controller.PlayerWhite.PlayerType;
-                ChallengeController.PlayerType black = controller.PlayerBlack.PlayerType;
-                if (ChallengeController.UsesSkillLevel.Contains(white) || ChallengeController.UsesSkillLevel.Contains(black))
+                if (UIHelper.Button($"Skill Level: {controller.botSkill}", skillLevelPos, buttonSize) || rightClickSkill)
                 {
-                    controller.StartNewGame(white, black);
+                    if (rightClickSkill)
+                        controller.botSkill = controller.botSkill == 0 ? 20 : controller.botSkill - 1;
+                    else
+                        controller.botSkill = (controller.botSkill + 1) % 21;
+                    ChallengeController.PlayerType white = controller.PlayerWhite.PlayerType;
+                    ChallengeController.PlayerType black = controller.PlayerBlack.PlayerType;
+                    if (ChallengeController.UsesSkillLevel.Contains(white) || ChallengeController.UsesSkillLevel.Contains(black))
+                    {
+                        controller.StartNewGame(white, black);
+                    }
                 }
             }
 

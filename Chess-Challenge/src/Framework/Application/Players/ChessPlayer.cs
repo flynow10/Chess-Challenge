@@ -17,7 +17,7 @@ namespace ChessChallenge.Application
 
         public ChessPlayer(object instance, ChallengeController.PlayerType type, int baseTimeMs = int.MaxValue)
         {
-            this.PlayerType = type;
+            PlayerType = type;
             Bot = instance as IChessBot;
             Human = instance as HumanPlayer;
             this.baseTimeMs = baseTimeMs;

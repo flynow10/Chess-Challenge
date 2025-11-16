@@ -9,8 +9,11 @@ using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using ChessChallenge.API;
 using static ChessChallenge.Application.Settings;
 using static ChessChallenge.Application.ConsoleHelper;
+using Board = ChessChallenge.Chess.Board;
+using Move = ChessChallenge.Chess.Move;
 
 namespace ChessChallenge.Application
 {
@@ -24,6 +27,8 @@ namespace ChessChallenge.Application
             ExtraEvilBot,
             PawnBot,
             StockFish,
+            StockFishV3,
+            Boychesser,
             Comet,
             MyBotV1,
             MyBotV2,
@@ -63,7 +68,7 @@ namespace ChessChallenge.Application
         public BotMatchStats BotStatsA { get; private set; }
         public BotMatchStats BotStatsB { get; private set; }
         bool botAPlaysWhite;
-        bool startedFromCustomFen = false;
+        bool startedFromCustomFen;
 
 
         // Bot task
@@ -179,13 +184,13 @@ namespace ChessChallenge.Application
             API.Board botBoard = new(board);
             try
             {
-                API.Timer timer = new(PlayerToMove.TimeRemainingMs, PlayerNotOnMove.TimeRemainingMs, GameDurationMilliseconds, IncrementMilliseconds);
+                API.Timer timer = new(PlayerToMove.TimeRemainingMs, PlayerNotOnMove.TimeRemainingMs, GameDurationMilliseconds);
                 API.Move move = PlayerToMove.Bot.Think(botBoard, timer);
                 return new Move(move.RawValue);
             }
             catch (Exception e)
             {
-                Log("An error occurred while bot was thinking.\n" + e.ToString(), true, ConsoleColor.Red);
+                Log("An error occurred while bot was thinking.\n" + e, true, ConsoleColor.Red);
                 hasBotTaskException = true;
                 botExInfo = ExceptionDispatchInfo.Capture(e);
             }
@@ -243,25 +248,35 @@ namespace ChessChallenge.Application
 
         ChessPlayer CreatePlayer(PlayerType type)
         {
-            return type switch
+            if (type == PlayerType.Human)
             {
-                PlayerType.MyBot => new ChessPlayer(new MyBot.MyBot(botSkill), type, GameDurationMilliseconds),
-                PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
-                PlayerType.ExtraEvilBot => new ChessPlayer(new ExtraEvilBot(), type, GameDurationMilliseconds),
-                PlayerType.PawnBot => new ChessPlayer(new PawnBot(), type, GameDurationMilliseconds),
-                PlayerType.StockFish => new ChessPlayer(new UCIBot.UCIBot("/opt/homebrew/bin/stockfish", false, botSkill), type, GameDurationMilliseconds),
-                PlayerType.Comet => new ChessPlayer(new UCIBot.UCIBot(Path.Combine(FileHelper.GetSrcDir()!, "Comet", "chess_bot")), type, GameDurationMilliseconds),
-                PlayerType.MyBotV1 => new ChessPlayer(new Version1.MyBot(), type, GameDurationMilliseconds),
-                PlayerType.MyBotV2 => new ChessPlayer(new Version2.MyBot(), type, GameDurationMilliseconds),
-                PlayerType.MyBotV3 => new ChessPlayer(new Version3.MyBot(), type, GameDurationMilliseconds),
-                PlayerType.MyBotV4 => new ChessPlayer(new Version4.MyBot(), type, GameDurationMilliseconds),
-                PlayerType.MyBotV5 => new ChessPlayer(new Version5.MyBot(), type, GameDurationMilliseconds),
-                PlayerType.MyBotV6 => new ChessPlayer(new Version6.MyBot(), type, GameDurationMilliseconds),
-                PlayerType.MyBotV7 => new ChessPlayer(new Version7.MyBot(), type, GameDurationMilliseconds),
-                PlayerType.MyBotV8 => new ChessPlayer(new Version8.MyBot(botSkill), type, GameDurationMilliseconds),
-                PlayerType.MyBotV9 => new ChessPlayer(new Version9.MyBot(botSkill), type, GameDurationMilliseconds),
-                _ => new ChessPlayer(new HumanPlayer(boardUI), type)
+                return new ChessPlayer(new HumanPlayer(boardUI), type);
+            }
+
+            IChessBot bot = type switch
+            {
+                PlayerType.MyBot => new MyBot.MyBot(botSkill),
+                PlayerType.EvilBot => new EvilBot(),
+                PlayerType.ExtraEvilBot => new ExtraEvilBot(),
+                PlayerType.PawnBot => new PawnBot(),
+                PlayerType.StockFish => new UCIBot.UCIBot("/opt/homebrew/bin/stockfish", false, botSkill),
+                PlayerType.StockFishV3 => new UCIBot.UCIBot(Path.Combine(FileHelper.GetSrcDir()!, "StockfishV3",
+                    "stockfish")),
+                PlayerType.Boychesser => new Boychesser.MyBot(),
+                PlayerType.Comet => new UCIBot.UCIBot(Path.Combine(FileHelper.GetSrcDir()!, "Comet", "chess_bot")),
+                PlayerType.MyBotV1 => new Version1.MyBot(),
+                PlayerType.MyBotV2 => new Version2.MyBot(),
+                PlayerType.MyBotV3 => new Version3.MyBot(),
+                PlayerType.MyBotV4 => new Version4.MyBot(),
+                PlayerType.MyBotV5 => new Version5.MyBot(),
+                PlayerType.MyBotV6 => new Version6.MyBot(),
+                PlayerType.MyBotV7 => new Version7.MyBot(),
+                PlayerType.MyBotV8 => new Version8.MyBot(botSkill),
+                PlayerType.MyBotV9 => new Version9.MyBot(botSkill),
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
             };
+            
+            return new ChessPlayer(bot, type, GameDurationMilliseconds);
         }
 
         public void SetNewGameDuration()
@@ -291,6 +306,17 @@ namespace ChessChallenge.Application
                 return new TokenCount(0, 0);
             }
             string path = Path.Combine(srcDir, "My Bot", "MyBot.cs");
+            return GetTokenCount(path);
+        }
+
+        static TokenCount GetBoychesserTokenCount()
+        {
+            string? srcDir = FileHelper.GetSrcDir();
+            if (srcDir == null)
+            {
+                return new TokenCount(0, 0);
+            }
+            string path = Path.Combine(srcDir, "Boychesser", "MyBot.cs");
             return GetTokenCount(path);
         }
 
@@ -326,7 +352,7 @@ namespace ChessChallenge.Application
         {
             foreach (PlayerType playerType in Enum.GetValues<PlayerType>())
             {
-                if (new [] {PlayerType.Human, PlayerType.EvilBot, PlayerType.Comet, PlayerType.StockFish, PlayerType.PawnBot}.Contains(playerType))
+                if (new [] {PlayerType.Human, PlayerType.EvilBot, PlayerType.Comet, PlayerType.StockFish, PlayerType.StockFishV3, PlayerType.PawnBot}.Contains(playerType))
                 {
                     tokenCounts[playerType] = new TokenCount(0,0);
                     continue;
@@ -339,6 +365,9 @@ namespace ChessChallenge.Application
                 else if (playerType == PlayerType.ExtraEvilBot)
                 {
                     tokenCounts[playerType] = GetExtraEvilBotTokenCount();
+                } else if (playerType == PlayerType.Boychesser)
+                {
+                    tokenCounts[playerType] = GetBoychesserTokenCount();
                 }
                 else
                 {
@@ -351,7 +380,8 @@ namespace ChessChallenge.Application
             {
                 if (bot.Value.total != 0)
                 {
-                    Log(string.Format("Bot: {0}, Brain Capacity: {1}, ({2} with debugs)", bot.Key, bot.Value.total - bot.Value.debug, bot.Value.total));
+                    Log(
+                        $"Bot: {bot.Key}, Brain Capacity: {bot.Value.total - bot.Value.debug}, ({bot.Value.total} with debugs)");
                 }
             }
         }
@@ -443,7 +473,7 @@ namespace ChessChallenge.Application
                         const int startNextGameDelayMs = 600;
                         System.Timers.Timer autoNextTimer = new(startNextGameDelayMs);
                         int originalGameID = gameID;
-                        autoNextTimer.Elapsed += (s, e) => AutoStartNextBotMatchGame(originalGameID, autoNextTimer);
+                        autoNextTimer.Elapsed += (_, _) => AutoStartNextBotMatchGame(originalGameID, autoNextTimer);
                         autoNextTimer.AutoReset = false;
                         autoNextTimer.Start();
                     }
@@ -609,7 +639,7 @@ namespace ChessChallenge.Application
 
         public class BotMatchStats
         {
-            public string BotName;
+            public readonly string BotName;
             public int NumWins;
             public int NumLosses;
             public int NumDraws;
