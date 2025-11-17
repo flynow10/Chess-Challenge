@@ -232,13 +232,20 @@ namespace ChessChallenge.Application
                 return new ChessPlayer(new HumanPlayer(boardUI), type);
             }
 
-            IChessBot bot = type switch
+            IChessBot bot = CreateChessBot(type, botSkill);
+            
+            return new ChessPlayer(bot, type, GameDurationMilliseconds);
+        }
+
+        public static IChessBot CreateChessBot(PlayerType type, int skillLevel)
+        {
+            return type switch
             {
                 PlayerType.MyBot => new MyBot.MyBot(),
                 PlayerType.EvilBot => new EvilBot(),
                 PlayerType.ExtraEvilBot => new ExtraEvilBot(),
                 PlayerType.PawnBot => new PawnBot(),
-                PlayerType.StockFish => new UCIBot.UCIBot("/opt/homebrew/bin/stockfish", false, botSkill),
+                PlayerType.StockFish => new UCIBot.UCIBot("/opt/homebrew/bin/stockfish", false, skillLevel),
                 PlayerType.StockFishV3 => new UCIBot.UCIBot(Path.Combine(FileHelper.GetSrcDir()!, "StockfishV3",
                     "stockfish")),
                 PlayerType.Boychesser => new Boychesser.MyBot(),
@@ -250,13 +257,11 @@ namespace ChessChallenge.Application
                 PlayerType.MyBotV5 => new Version5.MyBot(),
                 PlayerType.MyBotV6 => new Version6.MyBot(),
                 PlayerType.MyBotV7 => new Version7.MyBot(),
-                PlayerType.MyBotV8 => new Version8.MyBot(botSkill),
-                PlayerType.MyBotV9 => new Version9.MyBot(botSkill),
-                PlayerType.MyBotV10 => new MyBotV10.MyBot(botSkill),
+                PlayerType.MyBotV8 => new Version8.MyBot(skillLevel),
+                PlayerType.MyBotV9 => new Version9.MyBot(skillLevel),
+                PlayerType.MyBotV10 => new MyBotV10.MyBot(skillLevel),
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
             };
-            
-            return new ChessPlayer(bot, type, GameDurationMilliseconds);
         }
 
         public void SetNewGameDuration()

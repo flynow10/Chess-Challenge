@@ -6,6 +6,7 @@ using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ChessChallenge.Chess;
+using ChessChallenge.Testing;
 
 namespace ChessChallenge.Application
 {
@@ -21,7 +22,8 @@ namespace ChessChallenge.Application
                 switch (args[0])
                 {
                     case "bot-test":
-                        MyBot.Tester.Run();
+                        BotTester botTester = new BotTester();
+                        botTester.Run();
                         return;
                     case "fens":
                         foreach (var moveCount in new[] {15,25,50})
@@ -29,7 +31,7 @@ namespace ChessChallenge.Application
                             List<string> fenList = new();
                             for (int i = 0; i < 2000; i++)
                             {
-                                string fen = FenUtility.CurrentFen(MyBot.Tester.RandomBoard(moveCount));
+                                string fen = FenUtility.CurrentFen(BoardUtility.RandomBoard(moveCount));
                                 if (!fenList.Contains(fen))
                                 {
                                     fenList.Add(fen);
