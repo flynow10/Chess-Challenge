@@ -1,6 +1,6 @@
 using System;
 
-namespace ChessChallenge.MyBotV10;
+namespace ChessChallenge.Version10;
 
 [Flags]
 public enum SearchFlags: ulong

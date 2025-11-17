@@ -18,7 +18,8 @@ public class BotTester
 
     enum TestSuiteType
     {
-        MateTests
+        MateTests,
+        PieceSquareTables
     }
 
     public void Run()
@@ -62,8 +63,8 @@ public class BotTester
 
     enum SuiteOptionType
     {
-        ChangeBot,
         Run,
+        ChangeBot,
         Back,
     }
 
@@ -181,6 +182,7 @@ public class BotTester
         return type switch
         {
             TestSuiteType.MateTests => new MateTests(this),
+            TestSuiteType.PieceSquareTables => new PieceSquareTable(this),
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }

@@ -11,7 +11,7 @@ using ChessChallenge.Application;
 using Board = ChessChallenge.Chess.Board;
 using Move = ChessChallenge.Chess.Move;
 
-namespace ChessChallenge.MyBotV10;
+namespace ChessChallenge.Version10;
 
 public static class Tester
 {

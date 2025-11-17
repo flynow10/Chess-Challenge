@@ -1,7 +1,7 @@
 using System;
 using ChessChallenge.API;
 
-namespace ChessChallenge.MyBotV10;
+namespace ChessChallenge.Version10;
 
 public class MyBot : IChessBot
 {

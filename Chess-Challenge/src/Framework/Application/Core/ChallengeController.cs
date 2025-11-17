@@ -259,7 +259,7 @@ namespace ChessChallenge.Application
                 PlayerType.MyBotV7 => new Version7.MyBot(),
                 PlayerType.MyBotV8 => new Version8.MyBot(skillLevel),
                 PlayerType.MyBotV9 => new Version9.MyBot(skillLevel),
-                PlayerType.MyBotV10 => new MyBotV10.MyBot(skillLevel),
+                PlayerType.MyBotV10 => new Version10.MyBot(skillLevel),
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
             };
         }
