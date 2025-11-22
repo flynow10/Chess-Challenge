@@ -35,7 +35,7 @@ public class MiniChallengeManager
         _opponentBot = opponentBot;
     }
 
-    public MatchResult[] PlayMatches(string[] fens, bool parallel = false)
+    public MatchResult[] PlayMatches(string[] fens, bool parallel = false, Action<MatchResult>? onMatchFinished = null)
     {
         List<string> doubledFens = new List<string>();
         foreach (string fen in fens)
@@ -61,6 +61,10 @@ public class MiniChallengeManager
                     MatchResult matchResult = PlayMatch(fen, playsWhite);
                     _matchResults.Add(matchResult);
                 });
+                foreach (MatchResult matchResult in _matchResults)
+                {
+                    onMatchFinished?.Invoke(matchResult);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -79,6 +83,7 @@ public class MiniChallengeManager
                 bool playsWhite = i % 2 == 0;
                 MatchResult matchResult = PlayMatch(fen, playsWhite);
                 _matchResults.Add(matchResult);
+                onMatchFinished?.Invoke(matchResult);
             }
         }
         return _matchResults.ToArray();
@@ -117,7 +122,11 @@ public class MiniChallengeManager
             }
         }
 
-        MatchResult matchResult = new MatchResult(result, _playsWhite, board.plyCount, plyCount, position);
+        string whiteName = _playsWhite ? _testBot.ToString() : _opponentBot.ToString();
+        string blackName = !_playsWhite ? _testBot.ToString() : _opponentBot.ToString();
+        string pgn = PGNCreator.CreatePGN(board, result, whiteName, blackName);
+
+        MatchResult matchResult = new MatchResult(result, _testBot, _opponentBot, _playsWhite, board.plyCount, plyCount, position, pgn);
 
         return matchResult;
     }
@@ -174,5 +183,5 @@ public class MiniChallengeManager
         return Move.NullMove;
     }
 
-    public record struct MatchResult(GameResult Result, bool TesterPlayedWhite, int FullPlyCount, int PlyCount, FenUtility.PositionInfo Position);
+    public record struct MatchResult(GameResult Result, BotReference newBot, BotReference baseBot, bool TesterPlayedWhite, int FullPlyCount, int PlyCount, FenUtility.PositionInfo Position, string PGN);
 }
