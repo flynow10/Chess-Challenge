@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using ChessChallenge.API;
 using ChessChallenge.Application;
+using ChessChallenge.Testing.BotLoader;
+using LibGit2Sharp;
 using Spectre.Console;
 
 namespace ChessChallenge.Testing;
@@ -11,8 +14,8 @@ public class BotTester
 
     // Selection
     private TestSuiteType selectedSuite = TestSuiteType.MateTests;
-    private PlayerType selectedBotType = PlayerType.MyBot;
-    private int selectedSkillLevel = 20;
+    private BotReference newBot = new(PlayerType.MyBot);
+    private BotReference baseBot = new(PlayerType.MyBot);
     
     // Running
     private TestSuite _suite;
@@ -40,22 +43,19 @@ public class BotTester
         SuiteOptions();
     }
 
-    private PlayerType AskForBot(string question)
+    private BotReference AskForBot(string question)
     {
+        BotReference bot = new(PlayerType.MyBot);
         PlayerType[] playerTypes = Enum.GetValues<PlayerType>().Where(x => x != PlayerType.Human).ToArray();
-        return AnsiConsole.Prompt(new SelectionPrompt<PlayerType>()
+        bot.Type = AnsiConsole.Prompt(new SelectionPrompt<PlayerType>()
             .Title(question)
             .PageSize(10)
             .AddChoices(playerTypes)
         );
-    }
-
-    private void SelectBot()
-    {
-        selectedBotType = AskForBot("Which bot would you like to test?");
-        if (ChallengeController.UsesSkillLevel.Contains(selectedBotType))
+        
+        if (ChallengeController.UsesSkillLevel.Contains(newBot.Type))
         {
-            selectedSkillLevel = AnsiConsole.Prompt(
+            bot.SkillLevel = AnsiConsole.Prompt(
                 new TextPrompt<int>("What skill level would you like to use?")
                     .Validate(level => level switch
                     {
@@ -64,14 +64,50 @@ public class BotTester
                     })
             );
         }
-        
-        SuiteOptions();
+
+        if (bot.Type == PlayerType.HashBot)
+        {
+            bot.CommitHash = AskCommitHash();
+        }
+
+        return bot;
     }
+
+    private string AskCommitHash()
+    {
+        List<string> commits = GitLoader.GetRecentCommits();
+        string mainHash = GitLoader.GetMainCommit();
+        
+        commits.Insert(0, "main");
+
+        string hash = AnsiConsole.Prompt(new SelectionPrompt<string>()
+            .Title("Which commit would you like to test against?")
+            .AddChoices(commits)
+            .UseConverter(hash =>
+            {
+                if (hash == "main")
+                {
+                    return "main - " + GitLoader.GetCommitMessage(mainHash, true);
+                }
+                
+                return hash.Substring(0, 7) + " - " + GitLoader.GetCommitMessage(hash, true);
+            })
+        );
+
+        if (hash == "main")
+        {
+            return mainHash;
+        }
+
+        return hash;
+    }
+
 
     enum SuiteOptionType
     {
         Run,
-        ChangeBot,
+        ChangeNewBot,
+        ChangeBaseBot,
         Back,
     }
 
@@ -83,7 +119,8 @@ public class BotTester
                 .AddChoices(Enum.GetValues<SuiteOptionType>())
                 .UseConverter(optionType => optionType switch
                 {
-                    SuiteOptionType.ChangeBot => $"Select Bot ([aqua]{selectedBotType}[/])",
+                    SuiteOptionType.ChangeNewBot => $"Select New Bot ([aqua]{newBot.Type}[/])",
+                    SuiteOptionType.ChangeBaseBot => $"Select Base Bot ([aqua]{baseBot.Type}[/])",
                     SuiteOptionType.Run => "Run Suite",
                     SuiteOptionType.Back => "[red]Back[/]",
                     _ => throw new ArgumentOutOfRangeException(nameof(optionType), optionType, null)
@@ -92,8 +129,13 @@ public class BotTester
 
         switch (result)
         {
-            case SuiteOptionType.ChangeBot:
-                SelectBot();
+            case SuiteOptionType.ChangeNewBot:
+                newBot = AskForBot("Which bot would you like to test?");
+                SuiteOptions();
+                break;
+            case SuiteOptionType.ChangeBaseBot:
+                baseBot = AskForBot("Which bot would you like to use as the base?");
+                SuiteOptions();
                 break;
             case SuiteOptionType.Run:
                 RunSuite();
@@ -107,15 +149,8 @@ public class BotTester
     private void RunSuite()
     {
         _suite = CreateTestSuite(selectedSuite);
-        bool requiresOpponent = _suite.SetOpponent(PlayerType.Human);
 
         TestSuite.SuiteGroup[] groups = _suite.GetAllGroups();
-
-        if (requiresOpponent)
-        {
-            PlayerType opponent = AskForBot("Select opponent bot");
-            _suite.SetOpponent(opponent);
-        }
 
         string groupId = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
@@ -138,10 +173,10 @@ public class BotTester
                 SuiteOptions();
                 return;
             case "full":
-                result = _suite.RunFullSuite(selectedBotType);
+                result = _suite.RunFullSuite(newBot, baseBot);
                 break;
             default:
-                result = _suite.RunSuiteGroup(selectedBotType, groupId);
+                result = _suite.RunSuiteGroup(newBot, baseBot, groupId);
                 break;
         }
         stopwatch.Stop();
@@ -192,11 +227,6 @@ public class BotTester
         {
             AnsiConsole.MarkupLine($"{message}");
         }
-    }
-
-    public IChessBot CreateBot(PlayerType botType)
-    {
-        return ChallengeController.CreateChessBot(botType, selectedSkillLevel);
     }
 
     TestSuite CreateTestSuite(TestSuiteType type)

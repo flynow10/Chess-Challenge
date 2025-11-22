@@ -86,12 +86,12 @@ public class PieceSquareTable : TestSuite
     }
 
     public override string Name { get; } = "Piece Square Table Tester";
-    public override SuiteResult RunSuiteGroup(PlayerType botType, string groupId)
+    public override SuiteResult RunSuiteGroup(BotReference botType, BotReference baseBot, string groupId)
     {
         string result = "";
         while (result != "Exit")
         {
-            switch (botType)
+            switch (botType.Type)
             {
                 case PlayerType.MyBotV10:
                 {
@@ -185,10 +185,5 @@ public class PieceSquareTable : TestSuite
         {
             new SuiteGroup("visualize", "Visualize")
         };
-    }
-
-    public override bool SetOpponent(PlayerType opponent)
-    {
-        return false;
     }
 }

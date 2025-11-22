@@ -6,7 +6,7 @@ using ChessChallenge.Chess;
 
 namespace ChessChallenge.Testing;
 
-public class MateTests : TestSuite
+public class MateTests(BotTester botTester) : TestSuite(botTester)
 {
     public override string Name => "Mate in X";
     SuiteResult result;
@@ -46,11 +46,7 @@ public class MateTests : TestSuite
         "2k4r/1r1q2pp/QBp2p2/1p6/8/8/P4PPP/2R3K1 w - - 1 25"
     };
 
-    public MateTests(BotTester botTester) : base(botTester)
-    {
-    }
-
-    public override SuiteResult RunSuiteGroup(PlayerType botType, string groupId)
+    public override SuiteResult RunSuiteGroup(BotReference newBot, BotReference baseBot, string groupId)
     {
         result = new(groupId);
         string[] fens = Array.Empty<string>();
@@ -75,15 +71,10 @@ public class MateTests : TestSuite
         }
 
         Stopwatch sw = Stopwatch.StartNew();
-        MateTest(botType, fens, mateDepth);
+        MateTest(newBot, fens, mateDepth);
         sw.Stop();
         result.Elapsed = sw.Elapsed;
         return result;
-    }
-
-    public override bool SetOpponent(PlayerType opponent)
-    {
-        return false;
     }
 
     public override SuiteGroup[] GetAllGroups()
@@ -96,9 +87,9 @@ public class MateTests : TestSuite
         };
     }
 
-    private void MateTest(PlayerType botType, string[] fens, int mateDistance)
+    private void MateTest(BotReference botType, string[] fens, int mateDistance)
     {
-        MiniChallengeManager controller = new MiniChallengeManager(botType, _botTester.CreateBot);
+        MiniChallengeManager controller = new MiniChallengeManager(botType);
         controller.MaxMoves = mateDistance;
         foreach (string fenString in fens)
         {

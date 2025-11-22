@@ -6,17 +6,11 @@ using ChessChallenge.Application;
 
 namespace ChessChallenge.Testing;
 
-public abstract class TestSuite
+public abstract class TestSuite(BotTester botTester)
 {
     public abstract string Name { get; }
-    protected BotTester _botTester;
 
-    public TestSuite(BotTester botTester)
-    {
-        _botTester = botTester;
-    }
-
-    public SuiteResult RunFullSuite(PlayerType botType)
+    public SuiteResult RunFullSuite(BotReference newBot, BotReference baseBot)
     {
         SuiteGroup[] groups = GetAllGroups();
         List<SuiteResult> results = new List<SuiteResult>();
@@ -24,7 +18,7 @@ public abstract class TestSuite
         Stopwatch sw = Stopwatch.StartNew();
         foreach (SuiteGroup suiteGroup in groups)
         {
-            SuiteResult partialResult = RunSuiteGroup(botType, suiteGroup.GroupId);
+            SuiteResult partialResult = RunSuiteGroup(newBot, baseBot, suiteGroup.GroupId);
             fullResult.TotalTests += partialResult.TotalTests;
             fullResult.TestsPassed += partialResult.TestsPassed;
             fullResult.TestsFailed += partialResult.TestsFailed;
@@ -35,13 +29,12 @@ public abstract class TestSuite
         fullResult.Elapsed = sw.Elapsed;
         return fullResult;
     }
-    public abstract SuiteResult RunSuiteGroup(PlayerType botType, string groupId);
+    public abstract SuiteResult RunSuiteGroup(BotReference newBot, BotReference baseBot, string groupId);
     public abstract SuiteGroup[] GetAllGroups();
-    public abstract bool SetOpponent(PlayerType opponent);
 
     protected void DebugLog(string message, bool isError = false)
     {
-        _botTester.PrintTestDebug(message, isError);
+        botTester.PrintTestDebug(message, isError);
     }
 
     public record SuiteGroup(string GroupId, string Name);

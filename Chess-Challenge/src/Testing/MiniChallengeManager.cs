@@ -15,26 +15,24 @@ namespace ChessChallenge.Testing;
 
 public class MiniChallengeManager
 {
-    private readonly PlayerType _testBot;
-    private readonly PlayerType _opponentBot;
-    private readonly Func<PlayerType, IChessBot> botFactory;
+    private readonly BotReference _testBot;
+    private readonly BotReference _opponentBot;
 
     private ConcurrentBag<MatchResult> _matchResults = new();
 
     public int MaxMoves = -1;
     public int GameDurationMilliseconds = 60000;
 
-    public MiniChallengeManager(PlayerType testBot, Func<PlayerType, IChessBot> botFactory) : this(testBot,
-        PlayerType.StockFish, botFactory)
+    public MiniChallengeManager(BotReference testBot) : this(testBot,
+        new BotReference(PlayerType.StockFish))
 
     {
     }
 
-    public MiniChallengeManager(PlayerType bot, PlayerType opponentBot, Func<PlayerType, IChessBot> botFactory)
+    public MiniChallengeManager(BotReference bot, BotReference opponentBot)
     {
         _testBot = bot;
         _opponentBot = opponentBot;
-        this.botFactory = botFactory;
     }
 
     public MatchResult[] PlayMatches(string[] fens, bool parallel = false)
@@ -88,8 +86,8 @@ public class MiniChallengeManager
 
     public MatchResult PlayMatch(string fen, bool? testerPlaysWhite = null, CancellationToken cancellationToken = default)
     {
-        IChessBot testBot = botFactory.Invoke(_testBot);
-        IChessBot opponentBot = botFactory.Invoke(_opponentBot);
+        IChessBot testBot = _testBot.CreateBot();
+        IChessBot opponentBot = _opponentBot.CreateBot();
         int testBotSecondsElapsed = 0;
         int opponentSecondsElapsed = 0;
         Board board = new Board();

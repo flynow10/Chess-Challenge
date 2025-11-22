@@ -4,6 +4,7 @@ public enum PlayerType
 {
     Human,
     MyBot,
+    HashBot,
     EvilBot,
     ExtraEvilBot,
     PawnBot,

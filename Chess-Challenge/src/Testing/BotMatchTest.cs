@@ -7,14 +7,10 @@ using Spectre.Console;
 
 namespace ChessChallenge.Testing;
 
-public class BotMatchTest : TestSuite
+public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
 {
     private static readonly string[] fenList = FileHelper.ReadResourceFile("Fens.txt").Split('\n').Where(fen => fen.Length > 0).ToArray();
     public override string Name => "Bot Match Test";
-    private PlayerType _opponent;
-    public BotMatchTest(BotTester botTester) : base(botTester)
-    {
-    }
 
     private int AskSuiteSize()
     {
@@ -34,13 +30,13 @@ public class BotMatchTest : TestSuite
         );
     }
 
-    public override SuiteResult RunSuiteGroup(PlayerType botType, string groupId)
+    public override SuiteResult RunSuiteGroup(BotReference newBot, BotReference baseBot, string groupId)
     {
         int suiteSize = AskSuiteSize();
         string[] subFenList = new string[suiteSize];
         Array.Copy(fenList, subFenList, suiteSize);
         
-        MiniChallengeManager manager = new MiniChallengeManager(botType, _opponent, _botTester.CreateBot);
+        MiniChallengeManager manager = new MiniChallengeManager(newBot, baseBot);
         
         Stopwatch stopwatch = Stopwatch.StartNew();
         MiniChallengeManager.MatchResult[] results = manager.PlayMatches(subFenList);
@@ -49,7 +45,7 @@ public class BotMatchTest : TestSuite
         int gamesWon = 0, gamesLost = 0;
         foreach (MiniChallengeManager.MatchResult matchResult in results)
         {
-            DebugLog($"{(Arbiter.IsWinResult(matchResult.Result) && matchResult.TesterPlayedWhite == Arbiter.IsWhiteWinsResult(matchResult.Result) ? $"{botType} won" : $"{botType} lost")}, {matchResult.Result}: {matchResult.Position.fen}");
+            DebugLog($"{(Arbiter.IsWinResult(matchResult.Result) && matchResult.TesterPlayedWhite == Arbiter.IsWhiteWinsResult(matchResult.Result) ? $"{newBot} won" : $"{newBot} lost")}, {matchResult.Result}: {matchResult.Position.fen}");
             switch (matchResult.TesterPlayedWhite)
             {
                 case true:
@@ -91,11 +87,5 @@ public class BotMatchTest : TestSuite
         {
             new SuiteGroup("match", "Match")
         };
-    }
-
-    public override bool SetOpponent(PlayerType opponent)
-    {
-        _opponent = opponent;
-        return true;
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ChessChallenge.API;
+using ChessChallenge.Application;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
@@ -12,10 +13,16 @@ namespace ChessChallenge.Testing.BotLoader;
 
 public static class BotLoader
 {
-    public static IChessBot LoadBotHash(string hash)
+    public static IChessBot LoadHashBot(string hash)
     {
-        return LoadBot(GitLoader.LoadHash(hash));
+        return LoadBot(GitLoader.LoadMyBotFromHash(hash));
     }
+
+    public static TokenCount CountHashBotTokens(string hash)
+    {
+        return TokenCounter.CountTokens(GitLoader.LoadMyBotFromHash(hash));
+    }
+    
     public static IChessBot LoadBot(string rawBotCode)
     {
         string formattedCode = StripNamespace(rawBotCode) + "\nreturn new MyBot();";

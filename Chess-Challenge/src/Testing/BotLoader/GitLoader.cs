@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using LibGit2Sharp;
@@ -16,7 +17,7 @@ public static class GitLoader
         }
         return Path.Combine(root, ".git");
     }
-    public static string LoadHash(string hash)
+    public static string LoadMyBotFromHash(string hash)
     {
         using var repo = new Repository(GetRepositoryPath());
         Commit commit = repo.Commits.First(c => c.Sha == hash);
@@ -28,5 +29,37 @@ public static class GitLoader
         var blob = file.Target as Blob;
         using var stream = new StreamReader(blob.GetContentStream());
         return stream.ReadToEnd();
+    }
+
+    public static List<string> GetRecentCommits()
+    {
+        using var repo = new Repository(GetRepositoryPath());
+        return repo.Head.Commits.Take(10).Select(c => c.Sha).ToList();
+    }
+
+    public static string GetMainCommit()
+    {
+        using var repo = new Repository(GetRepositoryPath());
+        return repo.Branches["main"].Tip.Sha;
+    }
+
+    public static string GetMainMyBot()
+    {
+        using var repo = new Repository(GetRepositoryPath());
+        Branch branch = repo.Branches["main"];
+        return LoadMyBotFromHash(branch.Tip.Sha);
+    }
+
+    public static string GetCommitMessage(string hash, bool shortMessage = false)
+    {
+        using var repo = new Repository(GetRepositoryPath());
+        Commit commit = repo.Commits.First(c => c.Sha == hash);
+        if (commit == null)
+        {
+            throw new Exception($"Couldn't find commit with hash {hash}");
+        }
+        if(shortMessage)
+            return commit.MessageShort;
+        return commit.Message;
     }
 }
