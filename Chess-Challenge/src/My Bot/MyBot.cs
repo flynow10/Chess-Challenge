@@ -1,6 +1,5 @@
 using System;
 using ChessChallenge.API;
-using ChessChallenge.Chess;
 using static System.Math;
 using Board = ChessChallenge.API.Board;
 using Move = ChessChallenge.API.Move;
@@ -54,7 +53,7 @@ public class MyBot : IChessBot
             if (Abs(score) >= mateScore - 50)
                 break;
         }
-        Console.WriteLine($"PV: {MoveUtility.GetMoveNameUCI(new Chess.Move(_pv.RawValue))} Depth: {depth}"); // #DEBUG
+        Console.WriteLine($"PV: {_pv} Depth: {depth}"); // #DEBUG
         return _pv;
     }
 
