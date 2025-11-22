@@ -1,6 +1,9 @@
 using System;
 using ChessChallenge.API;
+using ChessChallenge.Chess;
 using static System.Math;
+using Board = ChessChallenge.API.Board;
+using Move = ChessChallenge.API.Move;
 
 namespace ChessChallenge.MyBot;
 
@@ -17,6 +20,7 @@ public class MyBot : IChessBot
     Timer _timer;
     int[] _pieceValues = { 0, 100, 300, 300, 500, 900, 0 }, _phaseValues = {0, 0, 1, 1, 2, 4, 0};
     const int mateScore = 100000, nullScore = 9999999, ttSize = 1 << 20;
+    int _nodes, _ttHits, _betaCutoffs; // #DEBUG
     
     TTEntry[] _tt = new TTEntry[ttSize];
     
@@ -37,18 +41,23 @@ public class MyBot : IChessBot
     public Move Think(Board board, Timer timer)
     {
         _timer = timer;
+        _nodes = _betaCutoffs = _ttHits = 0; // #DEBUG
+        _pv = default;
         int depth = 1;
         for (; depth < 50; depth++)
         {
             int score = Search(board, depth, 0, -nullScore, nullScore);
             if (OutOfTime)
+            {
+                depth--;
                 break;
-            // Console.WriteLine($"info depth {depth} score {score} ttHits {_ttHits} nodes {_nodes} betaCutoffs {_betaCutoffs}"); // #DEBUG
+            }
+            // Console.WriteLine($"info depth {depth} score {score} ttHits {_ttHits} nodes {_nodes} time {timer.MillisecondsElapsedThisTurn}"); // #DEBUG
             _pv = _currSearch;
             if (Abs(score) >= mateScore - 50)
                 break;
         }
-        // Console.WriteLine($"PV: {MoveUtility.GetMoveNameUCI(new Chess.Move(_pv.RawValue))} Depth: {depth}"); // #DEBUG
+        Console.WriteLine($"PV: {MoveUtility.GetMoveNameUCI(new Chess.Move(_pv.RawValue))} Depth: {depth}"); // #DEBUG
         return _pv;
     }
 
@@ -56,6 +65,7 @@ public class MyBot : IChessBot
     
     int Search(Board board, int depth, int plyFromRoot, int alpha, int beta)
     {
+        _nodes++; // #DEBUG
         if (OutOfTime) return nullScore;
 
         // Transposition table
@@ -70,9 +80,10 @@ public class MyBot : IChessBot
                 2 => entry.score <= alpha, // upper bound
                 _ => plyFromRoot > 0 || qSearch, // pv node
             })
-        {
+        { // #DEBUG
+            _ttHits++; // #DEBUG
             return entry.score;
-        }
+        } // #DEBUG
         
         int i, 
             bestScore = qSearch ? Evaluate(board) : -nullScore,
@@ -132,7 +143,10 @@ public class MyBot : IChessBot
 
             // Beta cutoff
             if (alpha >= beta)
+            { // #DEBUG
+                _betaCutoffs++; // #DEBUG
                 break;
+            } // #DEBUG
         }
 
         // Save to tt table only if valid move

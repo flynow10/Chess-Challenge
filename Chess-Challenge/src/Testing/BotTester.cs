@@ -18,6 +18,7 @@ public class BotTester
 
     enum TestSuiteType
     {
+        BotMatchTest,
         MateTests,
         PieceSquareTables
     }
@@ -38,14 +39,19 @@ public class BotTester
         SuiteOptions();
     }
 
-    private void SelectBot()
+    private PlayerType AskForBot(string question)
     {
         PlayerType[] playerTypes = Enum.GetValues<PlayerType>().Where(x => x != PlayerType.Human).ToArray();
-        selectedBotType = AnsiConsole.Prompt(new SelectionPrompt<PlayerType>()
-            .Title("Which bot would you like to test?")
+        return AnsiConsole.Prompt(new SelectionPrompt<PlayerType>()
+            .Title(question)
             .PageSize(10)
             .AddChoices(playerTypes)
         );
+    }
+
+    private void SelectBot()
+    {
+        selectedBotType = AskForBot("Which bot would you like to test?");
         if (ChallengeController.UsesSkillLevel.Contains(selectedBotType))
         {
             selectedSkillLevel = AnsiConsole.Prompt(
@@ -100,9 +106,15 @@ public class BotTester
     private void RunSuite()
     {
         _suite = CreateTestSuite(selectedSuite);
-        IChessBot bot = ChallengeController.CreateChessBot(selectedBotType, selectedSkillLevel);
+        bool requiresOpponent = _suite.SetOpponent(PlayerType.Human);
 
         TestSuite.SuiteGroup[] groups = _suite.GetAllGroups();
+
+        if (requiresOpponent)
+        {
+            PlayerType opponent = AskForBot("Select opponent bot");
+            _suite.SetOpponent(opponent);
+        }
 
         string groupId = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
@@ -124,10 +136,10 @@ public class BotTester
                 SuiteOptions();
                 return;
             case "full":
-                result = _suite.RunFullSuite(bot);
+                result = _suite.RunFullSuite(selectedBotType);
                 break;
             default:
-                result = _suite.RunSuiteGroup(bot, groupId);
+                result = _suite.RunSuiteGroup(selectedBotType, groupId);
                 break;
         }
         DisplayResults(result);
@@ -177,10 +189,16 @@ public class BotTester
         }
     }
 
+    public IChessBot CreateBot(PlayerType botType)
+    {
+        return ChallengeController.CreateChessBot(botType, selectedSkillLevel);
+    }
+
     TestSuite CreateTestSuite(TestSuiteType type)
     {
         return type switch
         {
+            TestSuiteType.BotMatchTest => new BotMatchTest(this),
             TestSuiteType.MateTests => new MateTests(this),
             TestSuiteType.PieceSquareTables => new PieceSquareTable(this),
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)

@@ -1,4 +1,5 @@
 using ChessChallenge.API;
+using ChessChallenge.Application;
 
 namespace ChessChallenge.Testing;
 
@@ -136,7 +137,7 @@ public class EvaluationTests: TestSuite
     }
 
     public override string Name { get; } = "Evaluation Tests";
-    public override SuiteResult RunSuiteGroup(IChessBot bot, string groupId)
+    public override SuiteResult RunSuiteGroup(PlayerType botType, string groupId)
     {
         throw new System.NotImplementedException();
     }
@@ -146,7 +147,7 @@ public class EvaluationTests: TestSuite
         throw new System.NotImplementedException();
     }
 
-    public override bool SetOpponent(IChessBot opponent)
+    public override bool SetOpponent(PlayerType opponent)
     {
         throw new System.NotImplementedException();
     }

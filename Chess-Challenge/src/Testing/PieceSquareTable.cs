@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using ChessChallenge.API;
+using ChessChallenge.Application;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
@@ -85,14 +86,14 @@ public class PieceSquareTable : TestSuite
     }
 
     public override string Name { get; } = "Piece Square Table Tester";
-    public override SuiteResult RunSuiteGroup(IChessBot bot, string groupId)
+    public override SuiteResult RunSuiteGroup(PlayerType botType, string groupId)
     {
         string result = "";
         while (result != "Exit")
         {
-            switch (bot.GetType().FullName.Split(".")[^2])
+            switch (botType)
             {
-                case "Version10":
+                case PlayerType.MyBotV10:
                 {
                     string[] pieces =
                     {
@@ -186,7 +187,7 @@ public class PieceSquareTable : TestSuite
         };
     }
 
-    public override bool SetOpponent(IChessBot opponent)
+    public override bool SetOpponent(PlayerType opponent)
     {
         return false;
     }

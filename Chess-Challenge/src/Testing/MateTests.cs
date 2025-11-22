@@ -1,5 +1,6 @@
 using System;
 using ChessChallenge.API;
+using ChessChallenge.Application;
 using ChessChallenge.Chess;
 
 namespace ChessChallenge.Testing;
@@ -43,12 +44,12 @@ public class MateTests : TestSuite
         "r1b3kr/3pR1p1/ppq4p/5P2/4Q3/B7/P5PP/5RK1 w - - 1 25",
         "2k4r/1r1q2pp/QBp2p2/1p6/8/8/P4PPP/2R3K1 w - - 1 25"
     };
-    
+
     public MateTests(BotTester botTester) : base(botTester)
     {
     }
 
-    public override SuiteResult RunSuiteGroup(IChessBot bot, string groupId)
+    public override SuiteResult RunSuiteGroup(PlayerType botType, string groupId)
     {
         result = new(groupId);
         string[] fens = Array.Empty<string>();
@@ -71,11 +72,12 @@ public class MateTests : TestSuite
             default:
                 throw new Exception("Unknown group id " + groupId);
         }
-        MateTest(bot, fens, mateDepth);
+
+        MateTest(botType, fens, mateDepth);
         return result;
     }
 
-    public override bool SetOpponent(IChessBot opponent)
+    public override bool SetOpponent(PlayerType opponent)
     {
         return false;
     }
@@ -90,43 +92,32 @@ public class MateTests : TestSuite
         };
     }
 
-    private void MateTest(IChessBot bot, string[] fens, int mateDistance, bool forceQuickest = true)
+    private void MateTest(PlayerType botType, string[] fens, int mateDistance)
     {
-        MiniChallengeManager controller = new MiniChallengeManager(bot);
+        MiniChallengeManager controller = new MiniChallengeManager(botType, _botTester.CreateBot);
+        controller.MaxMoves = mateDistance;
         foreach (string fenString in fens)
         {
             result.TotalTests++;
             DebugLog($"Mate in {mateDistance} test:");
             DebugLog($"Fen: {fenString}");
-            if (forceQuickest)
+            MiniChallengeManager.MatchResult matchResult = controller.PlayMatch(fenString);
+            if (matchResult.PlyCount / 2 >= mateDistance)
             {
-                controller.StartMatch(fenString);
-                for (int moveIndex = 0; moveIndex < Math.Max(mateDistance, 50); moveIndex++)
-                {
-                    controller.PlayMove(controller.GetNextMove());
-                    if (controller.GameResult != GameResult.InProgress)
-                        break;
-                    if (moveIndex / 2 >= mateDistance - 1)
-                    {
-                        DebugLog("Mate move limit reached", true);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                controller.PlayMatch(fenString);
+                DebugLog("Mate move limit reached", true);
+                continue;
             }
 
-            if (controller.GameResult is GameResult.WhiteIllegalMove or GameResult.BlackIllegalMove)
+            if (matchResult.Result is GameResult.WhiteIllegalMove or GameResult.BlackIllegalMove)
             {
                 DebugLog("Illegal move made", true);
                 result.TestsFailed++;
                 continue;
             }
 
-            if (!Arbiter.IsWinResult(controller.GameResult) ||
-                controller.BotPlaysWhite == controller.Board.IsWhiteToMove)
+            if (!Arbiter.IsWinResult(matchResult.Result) ||
+                matchResult is { TesterPlayedWhite: true, Result: GameResult.WhiteIsMated } || matchResult is
+                    { TesterPlayedWhite: false, Result: GameResult.BlackIsMated })
             {
                 DebugLog("Mate was not found", true);
                 result.TestsFailed++;

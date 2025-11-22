@@ -1,27 +1,28 @@
 using System;
 using System.Collections.Generic;
 using ChessChallenge.API;
+using ChessChallenge.Application;
 
 namespace ChessChallenge.Testing;
 
 public abstract class TestSuite
 {
     public abstract string Name { get; }
-    private BotTester _botTester;
+    protected BotTester _botTester;
 
     public TestSuite(BotTester botTester)
     {
         _botTester = botTester;
     }
 
-    public SuiteResult RunFullSuite(IChessBot bot)
+    public SuiteResult RunFullSuite(PlayerType botType)
     {
         SuiteGroup[] groups = GetAllGroups();
         List<SuiteResult> results = new List<SuiteResult>();
         SuiteResult fullResult = new ("full");
         foreach (SuiteGroup suiteGroup in groups)
         {
-            SuiteResult partialResult = RunSuiteGroup(bot, suiteGroup.GroupId);
+            SuiteResult partialResult = RunSuiteGroup(botType, suiteGroup.GroupId);
             fullResult.TotalTests += partialResult.TotalTests;
             fullResult.TestsPassed += partialResult.TestsPassed;
             fullResult.TestsFailed += partialResult.TestsFailed;
@@ -30,9 +31,9 @@ public abstract class TestSuite
         fullResult.SuiteGroups = results.ToArray();
         return fullResult;
     }
-    public abstract SuiteResult RunSuiteGroup(IChessBot bot, string groupId);
+    public abstract SuiteResult RunSuiteGroup(PlayerType botType, string groupId);
     public abstract SuiteGroup[] GetAllGroups();
-    public abstract bool SetOpponent(IChessBot opponent);
+    public abstract bool SetOpponent(PlayerType opponent);
 
     protected void DebugLog(string message, bool isError = false)
     {

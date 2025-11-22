@@ -1,5 +1,9 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using ChessChallenge.API;
+using ChessChallenge.Application;
 using ChessChallenge.Chess;
 using Spectre.Console;
 using Board = ChessChallenge.Chess.Board;
@@ -9,104 +13,120 @@ namespace ChessChallenge.Testing;
 
 public class MiniChallengeManager
 {
-    enum MiniBotType
+    private readonly PlayerType _testBot;
+    private readonly PlayerType _opponentBot;
+    private readonly Func<PlayerType, IChessBot> botFactory;
+
+    private ConcurrentBag<MatchResult> _matchResults = new();
+
+    public int MaxMoves = -1;
+    public int GameDurationMilliseconds = 60000;
+
+    public MiniChallengeManager(PlayerType testBot, Func<PlayerType, IChessBot> botFactory) : this(testBot,
+        PlayerType.StockFish, botFactory)
+
     {
-        MyBot,
-        Stockfish
     }
 
-    public const int GameDurationMilliseconds = 60000;
-    public int MyTimeSpentThinking = 0;
-    public int StockfishTimeSpentThinking = 0;
-    public IChessBot Bot;
-    public UCIBot.UCIBot Stockfish;
-    public bool BotPlaysWhite = true;
-
-    public Board Board;
-    public readonly MoveGenerator MoveGenerator = new();
-    public GameResult GameResult;
-
-    private readonly Random rng = new();
-
-    public MiniChallengeManager(IChessBot bot)
+    public MiniChallengeManager(PlayerType bot, PlayerType opponentBot, Func<PlayerType, IChessBot> botFactory)
     {
-        Bot = bot;
+        _testBot = bot;
+        _opponentBot = opponentBot;
+        this.botFactory = botFactory;
     }
 
-    public void StartMatch(string fen, bool? botPlaysWhite = null)
+    public MatchResult[] PlayMatches(string[] fens)
     {
-        Board = new();
-        Board.LoadPosition(fen);
-        Stockfish = new UCIBot.UCIBot(UCIBot.UCIBot.STOCKFISH_PATH, false);
-        GameResult = GameResult.NotStarted;
-        if (!botPlaysWhite.HasValue)
+        List<string> doubledFens = new List<string>();
+        foreach (string fen in fens)
         {
-            BotPlaysWhite = Board.IsWhiteToMove;
+            doubledFens.Add(fen);
+            doubledFens.Add(fen);
         }
-        else
+        _matchResults.Clear();
+        Parallel.ForEach(doubledFens, (fen, _, index) =>
         {
-            BotPlaysWhite = botPlaysWhite.Value;
-        }
+            bool playsWhite = index % 2 == 0;
+            MatchResult matchResult = PlayMatch(fen, playsWhite);
+            _matchResults.Add(matchResult);
+        });
+        return _matchResults.ToArray();
     }
 
-    public GameResult PlayMatch(string fen, bool? botPlaysWhite = null)
+    public MatchResult PlayMatch(string fen, bool? testerPlaysWhite = null)
     {
-        StartMatch(fen, botPlaysWhite);
-        while (!Arbiter.IsWinResult(GameResult) && !Arbiter.IsDrawResult(GameResult))
+        IChessBot testBot = botFactory.Invoke(_testBot);
+        IChessBot opponentBot = botFactory.Invoke(_opponentBot);
+        int testBotSecondsElapsed = 0;
+        int opponentSecondsElapsed = 0;
+        Board board = new Board();
+        
+        FenUtility.PositionInfo position = FenUtility.PositionFromFen(fen);
+        board.LoadPosition(position);
+
+        bool _playsWhite = testerPlaysWhite ?? position.whiteToMove;
+
+        int plyCount = 0;
+        GameResult result = GameResult.InProgress;
+        while (!Arbiter.IsWinResult(result) && !Arbiter.IsDrawResult(result))
         {
-            PlayMove(GetNextMove());
+            Move move = GetMove(board, testBot, opponentBot, _playsWhite, ref testBotSecondsElapsed,
+                ref opponentSecondsElapsed);
+            result = PlayMove(board, move);
+            plyCount++;
+            if (MaxMoves != -1 && plyCount / 2 >= MaxMoves)
+            {
+                result = _playsWhite ? GameResult.WhiteTimeout : GameResult.BlackTimeout;
+                break;
+            }
         }
 
-        return GameResult;
+        MatchResult matchResult = new MatchResult(result, _playsWhite, board.plyCount, plyCount, position);
+
+        return matchResult;
     }
 
-    public void PlayMove(Move move)
+    private GameResult PlayMove(Board board, Move move)
     {
         if (move.IsNull)
         {
-            GameResult = Board.IsWhiteToMove ? GameResult.WhiteIllegalMove : GameResult.BlackIllegalMove;
-            return;
+            return board.IsWhiteToMove ? GameResult.WhiteIllegalMove : GameResult.BlackIllegalMove;
         }
 
-        Board.MakeMove(move, false);
-        GameResult = Arbiter.GetGameState(Board);
-    }
-
-    public Move GetNextMove()
-    {
-        bool botMove = (BotPlaysWhite && Board.IsWhiteToMove) || !(BotPlaysWhite || Board.IsWhiteToMove);
-        Move move = Move.NullMove;
-        if (botMove)
-        {
-            move = GetBotMove();
-        }
-        else
-        {
-            move = GetBotMove(MiniBotType.Stockfish);
-        }
-
-        return move;
-    }
-
-    Move GetBotMove(MiniBotType botType = MiniBotType.MyBot)
-    {
-        API.Board botBoard = new(Board);
         try
         {
-            int timeSpentThinking = botType == MiniBotType.MyBot ? MyTimeSpentThinking : StockfishTimeSpentThinking;
-            IChessBot bot = botType == MiniBotType.MyBot ? Bot : Stockfish;
-            Timer timer = new(GameDurationMilliseconds - timeSpentThinking, GameDurationMilliseconds,
+            board.MakeMove(move, false);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            Console.WriteLine(FenUtility.CurrentFen(board));
+            Console.WriteLine(MoveUtility.GetMoveNameUCI(move));
+            return board.IsWhiteToMove ? GameResult.WhiteIllegalMove : GameResult.BlackIllegalMove;
+        }
+        return Arbiter.GetGameState(board);
+    }
+
+    private Move GetMove(Board board, IChessBot tester, IChessBot opponent, bool testerPlaysWhite, ref int testerTime,
+        ref int opponentBotTime)
+    {
+        bool isTesterTurn = board.IsWhiteToMove == testerPlaysWhite;
+        IChessBot bot = isTesterTurn ? tester : opponent;
+
+        if (isTesterTurn)
+            return GetBotMove(board, bot, ref testerTime, opponentBotTime);
+        return GetBotMove(board, bot, ref opponentBotTime, testerTime);
+    }
+
+    private Move GetBotMove(Board board, IChessBot bot, ref int timeUsed, int opponentTimeUsed)
+    {
+        API.Board botBoard = new(board);
+        try
+        {
+            Timer timer = new(GameDurationMilliseconds - timeUsed, GameDurationMilliseconds - opponentTimeUsed,
                 GameDurationMilliseconds);
             API.Move move = bot.Think(botBoard, timer);
-            if (botType == MiniBotType.MyBot)
-            {
-                MyTimeSpentThinking += timer.MillisecondsElapsedThisTurn;
-            }
-            else
-            {
-                StockfishTimeSpentThinking += timer.MillisecondsElapsedThisTurn;
-            }
-
+            timeUsed += timer.MillisecondsElapsedThisTurn;
             return new Move(move.RawValue);
         }
         catch (Exception e)
@@ -117,4 +137,6 @@ public class MiniChallengeManager
 
         return Move.NullMove;
     }
+
+    public record struct MatchResult(GameResult Result, bool TesterPlayedWhite, int FullPlyCount, int PlyCount, FenUtility.PositionInfo Position);
 }
