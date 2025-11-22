@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using ChessChallenge.API;
 using ChessChallenge.Application;
 using ChessChallenge.Chess;
@@ -73,7 +74,10 @@ public class MateTests : TestSuite
                 throw new Exception("Unknown group id " + groupId);
         }
 
+        Stopwatch sw = Stopwatch.StartNew();
         MateTest(botType, fens, mateDepth);
+        sw.Stop();
+        result.Elapsed = sw.Elapsed;
         return result;
     }
 

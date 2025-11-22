@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using ChessChallenge.API;
 using ChessChallenge.Application;
@@ -8,6 +9,7 @@ using ChessChallenge.Chess;
 using Spectre.Console;
 using Board = ChessChallenge.Chess.Board;
 using Move = ChessChallenge.Chess.Move;
+using Timer = ChessChallenge.API.Timer;
 
 namespace ChessChallenge.Testing;
 
@@ -35,7 +37,7 @@ public class MiniChallengeManager
         this.botFactory = botFactory;
     }
 
-    public MatchResult[] PlayMatches(string[] fens)
+    public MatchResult[] PlayMatches(string[] fens, bool parallel = false)
     {
         List<string> doubledFens = new List<string>();
         foreach (string fen in fens)
@@ -44,16 +46,47 @@ public class MiniChallengeManager
             doubledFens.Add(fen);
         }
         _matchResults.Clear();
-        Parallel.ForEach(doubledFens, (fen, _, index) =>
+        if (parallel)
         {
-            bool playsWhite = index % 2 == 0;
-            MatchResult matchResult = PlayMatch(fen, playsWhite);
-            _matchResults.Add(matchResult);
-        });
+            CancellationTokenSource cts = new();
+            Task.Factory.StartNew(() =>
+            {
+                if (Console.ReadKey(true).Key == ConsoleKey.Q)
+                    cts.Cancel();
+            }, cts.Token);
+            ParallelOptions options = new() { CancellationToken = cts.Token, MaxDegreeOfParallelism = 2};
+            try
+            {
+                Parallel.ForEach(doubledFens, options, (fen, _, index) =>
+                {
+                    bool playsWhite = index % 2 == 0;
+                    MatchResult matchResult = PlayMatch(fen, playsWhite);
+                    _matchResults.Add(matchResult);
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("Canceled bot match!");
+            }
+            finally
+            {
+                cts.Dispose();
+            }
+        }
+        else
+        {
+            for (var i = 0; i < doubledFens.Count; i++)
+            {
+                string fen = doubledFens[i];
+                bool playsWhite = i % 2 == 0;
+                MatchResult matchResult = PlayMatch(fen, playsWhite);
+                _matchResults.Add(matchResult);
+            }
+        }
         return _matchResults.ToArray();
     }
 
-    public MatchResult PlayMatch(string fen, bool? testerPlaysWhite = null)
+    public MatchResult PlayMatch(string fen, bool? testerPlaysWhite = null, CancellationToken cancellationToken = default)
     {
         IChessBot testBot = botFactory.Invoke(_testBot);
         IChessBot opponentBot = botFactory.Invoke(_opponentBot);
@@ -70,6 +103,11 @@ public class MiniChallengeManager
         GameResult result = GameResult.InProgress;
         while (!Arbiter.IsWinResult(result) && !Arbiter.IsDrawResult(result))
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                result = GameResult.DrawByArbiter;
+                break;
+            }
             Move move = GetMove(board, testBot, opponentBot, _playsWhite, ref testBotSecondsElapsed,
                 ref opponentSecondsElapsed);
             result = PlayMove(board, move);

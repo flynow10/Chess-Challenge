@@ -1,29 +1,55 @@
 using System;
+using System.Diagnostics;
+using System.Linq;
 using ChessChallenge.Application;
 using ChessChallenge.Chess;
+using Spectre.Console;
 
 namespace ChessChallenge.Testing;
 
 public class BotMatchTest : TestSuite
 {
+    private static readonly string[] fenList = FileHelper.ReadResourceFile("Fens.txt").Split('\n').Where(fen => fen.Length > 0).ToArray();
     public override string Name => "Bot Match Test";
     private PlayerType _opponent;
     public BotMatchTest(BotTester botTester) : base(botTester)
     {
     }
 
+    private int AskSuiteSize()
+    {
+        return AnsiConsole.Prompt(
+            new SelectionPrompt<int>()
+                .Title("What size suite would you like to run?")
+                .AddChoices(2, 10, 50, 250, 500)
+                .UseConverter(size => size switch
+                {
+                    2 => "Test set (2)",
+                    10 => "Tiny (10)",
+                    50 => "Small (50)",
+                    250 => "Medium (250)",
+                    500 => "Full (500)",
+                    _ => throw new ArgumentOutOfRangeException(nameof(size), size, null)
+                })
+        );
+    }
+
     public override SuiteResult RunSuiteGroup(PlayerType botType, string groupId)
     {
+        int suiteSize = AskSuiteSize();
+        string[] subFenList = new string[suiteSize];
+        Array.Copy(fenList, subFenList, suiteSize);
+        
         MiniChallengeManager manager = new MiniChallengeManager(botType, _opponent, _botTester.CreateBot);
-        MiniChallengeManager.MatchResult[] results = manager.PlayMatches(new[]
-        {
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            "r1bq1rk1/pp3ppp/2n1p3/3n4/1b1P4/2N2N2/PP2BPPP/R1BQ1RK1 w - - 0 10"
-        });
+        
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        MiniChallengeManager.MatchResult[] results = manager.PlayMatches(subFenList);
+        stopwatch.Stop();
+        
         int gamesWon = 0, gamesLost = 0;
         foreach (MiniChallengeManager.MatchResult matchResult in results)
         {
-            DebugLog($"{matchResult.Result}: {matchResult.Position.fen}");
+            DebugLog($"{(Arbiter.IsWinResult(matchResult.Result) && matchResult.TesterPlayedWhite == Arbiter.IsWhiteWinsResult(matchResult.Result) ? $"{botType} won" : $"{botType} lost")}, {matchResult.Result}: {matchResult.Position.fen}");
             switch (matchResult.TesterPlayedWhite)
             {
                 case true:
@@ -56,7 +82,7 @@ public class BotMatchTest : TestSuite
                 }
             }
         }
-        return new SuiteResult(groupId, results.Length, gamesWon, gamesLost, Array.Empty<SuiteResult>());
+        return new SuiteResult(groupId, results.Length, gamesWon, gamesLost, Array.Empty<SuiteResult>(), stopwatch.Elapsed);
     }
 
     public override SuiteGroup[] GetAllGroups()

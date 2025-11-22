@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using ChessChallenge.API;
 using ChessChallenge.Application;
@@ -129,6 +130,7 @@ public class BotTester
                     _ => groups.First(group => group.GroupId == prompt)?.Name
                 } ?? throw new InvalidOperationException())
         );
+        Stopwatch stopwatch = Stopwatch.StartNew();
         SuiteResult result;
         switch (groupId)
         {
@@ -142,6 +144,8 @@ public class BotTester
                 result = _suite.RunSuiteGroup(selectedBotType, groupId);
                 break;
         }
+        stopwatch.Stop();
+        
         DisplayResults(result);
     }
 
@@ -149,9 +153,10 @@ public class BotTester
     {
         Table table = new Table
         {
-            Title = new TableTitle($"Test Results ([teal]{_suite.Name}[/])")
+            Title = new TableTitle($"Test Results ([teal]{_suite.Name}[/])"),
+            ShowRowSeparators = true
         };
-        table.AddColumns("Group", "Total Tests", "Tests Passed", "Tests Failed");
+        table.AddColumns("Group", "Total Tests", "Tests Passed", "Tests Failed", "Time Spent");
         TestSuite.SuiteGroup[] suiteGroups = _suite.GetAllGroups();
         
         // Add top level
@@ -173,7 +178,7 @@ public class BotTester
             } else {
                 groupName = suiteGroups.First(group => group.GroupId == result.GroupId).Name;
             }
-            table.AddRow(groupName, $"[blue]{result.TotalTests}[/]", $"[green]{result.TestsPassed}[/]", $"[red]{result.TestsFailed}[/]");
+            table.AddRow(groupName, $"[blue]{result.TotalTests}[/]", $"[green]{result.TestsPassed}[/]", $"[red]{result.TestsFailed}[/]", result.Elapsed.ToString());
         }
     }
 

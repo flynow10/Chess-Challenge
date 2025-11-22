@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using ChessChallenge.API;
 using ChessChallenge.Application;
 
@@ -20,6 +21,7 @@ public abstract class TestSuite
         SuiteGroup[] groups = GetAllGroups();
         List<SuiteResult> results = new List<SuiteResult>();
         SuiteResult fullResult = new ("full");
+        Stopwatch sw = Stopwatch.StartNew();
         foreach (SuiteGroup suiteGroup in groups)
         {
             SuiteResult partialResult = RunSuiteGroup(botType, suiteGroup.GroupId);
@@ -28,7 +30,9 @@ public abstract class TestSuite
             fullResult.TestsFailed += partialResult.TestsFailed;
             results.Add(partialResult);
         }
+        sw.Stop();
         fullResult.SuiteGroups = results.ToArray();
+        fullResult.Elapsed = sw.Elapsed;
         return fullResult;
     }
     public abstract SuiteResult RunSuiteGroup(PlayerType botType, string groupId);
