@@ -12,6 +12,10 @@ namespace ChessChallenge.Testing.BotLoader;
 
 public static class BotLoader
 {
+    public static IChessBot LoadBotHash(string hash)
+    {
+        return LoadBot(GitLoader.LoadHash(hash));
+    }
     public static IChessBot LoadBot(string rawBotCode)
     {
         string formattedCode = StripNamespace(rawBotCode) + "\nreturn new MyBot();";

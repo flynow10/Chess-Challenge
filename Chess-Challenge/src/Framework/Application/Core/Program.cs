@@ -5,10 +5,8 @@ using Raylib_cs;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using ChessChallenge.API;
 using ChessChallenge.Chess;
 using ChessChallenge.Testing;
-using ChessChallenge.Testing.BotLoader;
 
 namespace ChessChallenge.Application
 {
@@ -23,15 +21,6 @@ namespace ChessChallenge.Application
             {
                 switch (args[0])
                 {
-                    case "load":
-                        string path = Path.Combine(FileHelper.GetSrcDir()!, "Boychesser", "MyBot.cs");
-                        using (StreamReader reader = new(path))
-                        {
-                            string txt = reader.ReadToEnd();
-                            IChessBot loadedBot = BotLoader.LoadBot(txt);
-                            Console.WriteLine(loadedBot.GetType().FullName);
-                        }
-                        return;
                     case "bot-test":
                         BotTester botTester = new BotTester();
                         botTester.Run();
