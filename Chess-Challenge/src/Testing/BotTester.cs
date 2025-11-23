@@ -53,7 +53,7 @@ public class BotTester
             .AddChoices(playerTypes)
         );
         
-        if (ChallengeController.UsesSkillLevel.Contains(newBot.Type))
+        if (ChallengeController.UsesSkillLevel.Contains(bot.Type))
         {
             bot.SkillLevel = AnsiConsole.Prompt(
                 new TextPrompt<int>("What skill level would you like to use?")
@@ -180,8 +180,12 @@ public class BotTester
                 break;
         }
         stopwatch.Stop();
-        
-        DisplayResults(result);
+
+        if (selectedSuite is not TestSuiteType.BotMatchTest)
+        {
+            DisplayResults(result);
+        }
+        SuiteOptions();
     }
 
     private void DisplayResults(SuiteResult result)

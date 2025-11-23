@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using ChessChallenge.API;
 using ChessChallenge.Example;
 using ChessChallenge.Testing.BotLoader;
@@ -16,8 +17,8 @@ public record struct BotReference(PlayerType Type, int SkillLevel = 20, string C
             PlayerType.MyBot => GetSrcDirTokenCount("My Bot", "MyBot.cs"),
             PlayerType.HashBot => BotLoader.CountHashBotTokens(CommitHash),
             PlayerType.Boychesser => GetSrcDirTokenCount("Boychesser", "MyBot.cs"),
-            PlayerType.EvilBot =>  GetSrcDirTokenCount("EvilBot", "EvilBot.cs"),
-            PlayerType.ExtraEvilBot =>   GetSrcDirTokenCount("ExtraEvilBot", "ExtraEvilBot.cs"),
+            PlayerType.EvilBot =>  GetSrcDirTokenCount("Evil Bot", "EvilBot.cs"),
+            PlayerType.ExtraEvilBot =>   GetSrcDirTokenCount("Extra Evil Bot", "ExtraEvilBot.cs"),
             _ => new TokenCount(0,0)
         };
         
@@ -59,5 +60,19 @@ public record struct BotReference(PlayerType Type, int SkillLevel = 20, string C
             PlayerType.MyBotV10 => new Version10.MyBot(SkillLevel),
             _ => throw new ArgumentOutOfRangeException(nameof(Type), Type, null)
         };
+    }
+
+    public override string ToString()
+    {
+        if (Type == PlayerType.HashBot)
+        {
+            return $"{Type}({CommitHash.Substring(0, 7)})";
+        }
+
+        if (ChallengeController.UsesSkillLevel.Contains(Type))
+        {
+            return $"{Type}({SkillLevel})";
+        }
+        return $"{Type}";
     }
 }

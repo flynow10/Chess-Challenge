@@ -337,7 +337,7 @@ namespace ChessChallenge.Application
         {
             foreach (PlayerType playerType in Enum.GetValues<PlayerType>())
             {
-                if (new [] {PlayerType.Human, PlayerType.EvilBot, PlayerType.Comet, PlayerType.StockFish, PlayerType.StockFishV3, PlayerType.PawnBot}.Contains(playerType))
+                if (new [] {PlayerType.Human, PlayerType.EvilBot, PlayerType.Comet, PlayerType.StockFish, PlayerType.StockFishV3, PlayerType.PawnBot, PlayerType.HashBot}.Contains(playerType))
                 {
                     tokenCounts[playerType] = new TokenCount(0,0);
                     continue;

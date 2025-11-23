@@ -22,6 +22,8 @@ public class MiniChallengeManager
 
     public int MaxMoves = -1;
     public int GameDurationMilliseconds = 60000;
+    public int IncrementMilliseconds = 0;
+    public bool Debug = false;
 
     public MiniChallengeManager(BotReference testBot) : this(testBot,
         new BotReference(PlayerType.StockFish))
@@ -35,14 +37,9 @@ public class MiniChallengeManager
         _opponentBot = opponentBot;
     }
 
-    public MatchResult[] PlayMatches(string[] fens, bool parallel = false)
+    public MatchResult[] PlayMatches(string[] fens, bool parallel = false, Action<MatchResult>? onMatchFinished = null)
     {
-        List<string> doubledFens = new List<string>();
-        foreach (string fen in fens)
-        {
-            doubledFens.Add(fen);
-            doubledFens.Add(fen);
-        }
+        List<string> doubledFens = DoubleFens(fens);
         _matchResults.Clear();
         if (parallel)
         {
@@ -61,6 +58,10 @@ public class MiniChallengeManager
                     MatchResult matchResult = PlayMatch(fen, playsWhite);
                     _matchResults.Add(matchResult);
                 });
+                foreach (MatchResult matchResult in _matchResults)
+                {
+                    onMatchFinished?.Invoke(matchResult);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -79,9 +80,43 @@ public class MiniChallengeManager
                 bool playsWhite = i % 2 == 0;
                 MatchResult matchResult = PlayMatch(fen, playsWhite);
                 _matchResults.Add(matchResult);
+                onMatchFinished?.Invoke(matchResult);
             }
         }
         return _matchResults.ToArray();
+    }
+
+    public SPRTResult RunSPRT(string[] fens, SPRT.SPRTOptions options, Action<MatchResult>? onMatchFinished = null)
+    {
+        List<string> doubledFens = DoubleFens(fens);
+        List<MatchResult> matchResults = new();
+        SPRT sprt = new SPRT(options);
+        int fenIndex = 0;
+        while (sprt.CurrentStatus == SPRT.Status.None)
+        {
+            bool playsWhite = fenIndex % 2 == 0;
+            string fen = doubledFens[fenIndex];
+            MatchResult matchResult = PlayMatch(fen, playsWhite);
+            if (Arbiter.IsDrawResult(matchResult.Result))
+                sprt.Record(1);
+            else if (matchResult.TesterPlayedWhite == Arbiter.IsWhiteWinsResult(matchResult.Result))
+                sprt.Record(2);
+            else
+                sprt.Record(0);
+            matchResults.Add(matchResult);
+            onMatchFinished?.Invoke(matchResult);
+            
+            if (Debug)
+            {
+                AnsiConsole.WriteLine();
+                AnsiConsole.WriteLine($"W: {sprt.Wins} L: {sprt.Losses} D: {sprt.Draws} T: {sprt.Total}");
+                AnsiConsole.WriteLine($"LLR: {sprt.LLR} ({sprt.LowerBound}, {sprt.UpperBound})");
+            }
+            
+            fenIndex = (fenIndex + 1) % doubledFens.Count;
+        }
+
+        return new SPRTResult(matchResults.ToArray(), sprt.LLR, sprt.LowerBound, sprt.UpperBound, sprt.CurrentStatus, options);
     }
 
     public MatchResult PlayMatch(string fen, bool? testerPlaysWhite = null, CancellationToken cancellationToken = default)
@@ -117,7 +152,11 @@ public class MiniChallengeManager
             }
         }
 
-        MatchResult matchResult = new MatchResult(result, _playsWhite, board.plyCount, plyCount, position);
+        string whiteName = _playsWhite ? _testBot.ToString() : _opponentBot.ToString();
+        string blackName = !_playsWhite ? _testBot.ToString() : _opponentBot.ToString();
+        string pgn = PGNCreator.CreatePGN(board, result, whiteName, blackName);
+
+        MatchResult matchResult = new MatchResult(result, _testBot, _opponentBot, _playsWhite, board.plyCount, plyCount, position, pgn);
 
         return matchResult;
     }
@@ -160,9 +199,9 @@ public class MiniChallengeManager
         try
         {
             Timer timer = new(GameDurationMilliseconds - timeUsed, GameDurationMilliseconds - opponentTimeUsed,
-                GameDurationMilliseconds);
+                GameDurationMilliseconds, IncrementMilliseconds);
             API.Move move = bot.Think(botBoard, timer);
-            timeUsed += timer.MillisecondsElapsedThisTurn;
+            timeUsed += timer.MillisecondsElapsedThisTurn - IncrementMilliseconds;
             return new Move(move.RawValue);
         }
         catch (Exception e)
@@ -174,5 +213,19 @@ public class MiniChallengeManager
         return Move.NullMove;
     }
 
-    public record struct MatchResult(GameResult Result, bool TesterPlayedWhite, int FullPlyCount, int PlyCount, FenUtility.PositionInfo Position);
+    private List<string> DoubleFens(string[] fens)
+    {
+        List<string> doubledFens = new List<string>();
+        foreach (string fen in fens)
+        {
+            doubledFens.Add(fen);
+            doubledFens.Add(fen);
+        }
+
+        return doubledFens;
+    }
+
+    public record struct MatchResult(GameResult Result, BotReference newBot, BotReference baseBot, bool TesterPlayedWhite, int FullPlyCount, int PlyCount, FenUtility.PositionInfo Position, string PGN);
+
+    public record struct SPRTResult(MatchResult[] Results, double LLR, double LowerBound, double UpperBound, SPRT.Status Status, SPRT.SPRTOptions Options);
 }
