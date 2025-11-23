@@ -13,10 +13,10 @@ public class SPRT
     }
 
     public Status CurrentStatus { get; private set; } = Status.None;
-    public double Alpha = 0;
-    public double Beta = 0;
-    public double Elo0 = 0;
-    public double Elo1 = 0;
+    public double Alpha;
+    public double Beta;
+    public double Elo0;
+    public double Elo1;
     public double LLR { get; private set; }
     
     public double LA => Math.Log(Beta / (1 - Alpha));
@@ -89,6 +89,11 @@ public class SPRT
             this.Elo1 = Elo1;
             this.Alpha = Alpha;
             this.Beta = Beta;
+        }
+
+        public override string ToString()
+        {
+            return $"{{elo0={Elo0}, elo1={Elo1}, alpha={Alpha}, beta={Beta}}}";
         }
     }
 }

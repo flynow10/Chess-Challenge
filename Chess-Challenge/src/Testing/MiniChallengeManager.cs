@@ -88,7 +88,6 @@ public class MiniChallengeManager
 
     public SPRTResult RunSPRT(string[] fens, SPRT.SPRTOptions options, Action<MatchResult>? onMatchFinished = null)
     {
-        Console.WriteLine(options);
         List<string> doubledFens = DoubleFens(fens);
         List<MatchResult> matchResults = new();
         SPRT sprt = new SPRT(options);
@@ -109,15 +108,15 @@ public class MiniChallengeManager
             
             if (Debug)
             {
-                Console.WriteLine();
-                Console.WriteLine($"W: {sprt.Wins} L: {sprt.Losses} D: {sprt.Draws} T: {sprt.Total}");
-                Console.WriteLine($"LLR: {sprt.LLR} ({sprt.LowerBound}, {sprt.UpperBound})");
+                AnsiConsole.WriteLine();
+                AnsiConsole.WriteLine($"W: {sprt.Wins} L: {sprt.Losses} D: {sprt.Draws} T: {sprt.Total}");
+                AnsiConsole.WriteLine($"LLR: {sprt.LLR} ({sprt.LowerBound}, {sprt.UpperBound})");
             }
             
             fenIndex = (fenIndex + 1) % doubledFens.Count;
         }
 
-        return new SPRTResult(matchResults.ToArray(), sprt.LLR);
+        return new SPRTResult(matchResults.ToArray(), sprt.LLR, sprt.LowerBound, sprt.UpperBound, sprt.CurrentStatus, options);
     }
 
     public MatchResult PlayMatch(string fen, bool? testerPlaysWhite = null, CancellationToken cancellationToken = default)
@@ -228,5 +227,5 @@ public class MiniChallengeManager
 
     public record struct MatchResult(GameResult Result, BotReference newBot, BotReference baseBot, bool TesterPlayedWhite, int FullPlyCount, int PlyCount, FenUtility.PositionInfo Position, string PGN);
 
-    public record struct SPRTResult(MatchResult[] Results, double LLR);
+    public record struct SPRTResult(MatchResult[] Results, double LLR, double LowerBound, double UpperBound, SPRT.Status Status, SPRT.SPRTOptions Options);
 }

@@ -78,14 +78,48 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
         return ((int)(minutes * 60 * 1000), (int)(increment * 1000));
     }
 
+    private string TimeControlToString((int, int) timeControl)
+    {
+        return $"{(double)timeControl.Item1 / 60000:0.00}+{(double)timeControl.Item2 / 1000:0.00}";
+    }
+
     private void SaveMatchResult(MiniChallengeManager.MatchResult matchResult, string prefix)
     {
         string testId = prefix + GetTestId(matchResult.newBot, matchResult.baseBot);
+        AppendToFile(testId, matchResult.PGN);
+    }
+
+    private void SaveFullTestResult(MiniChallengeManager.MatchResult[] matchResult, BotReference newBot,
+        BotReference baseBot, MiniChallengeManager.SPRTResult? sprtResult = null)
+    {
+        MatchStatistics ms = new MatchStatistics(matchResult, newBot, baseBot);
+        
+        string testId = GetTestId(newBot, baseBot);
+        string matchStats = $"""
+                             {newBot} vs {baseBot}
+                             Tokens
+                               Diff: {ms.TokenDifference}
+                               New: {ms.NewBotTokens}
+                               Base: {ms.BaseBotTokens}
+                             Score
+                               W: {ms.GamesWon} D: {ms.GamesDrawn} L: {ms.GamesLost} T: {ms.TotalGames}
+                               Elo: {ms.Elo} +/-{ms.EloMargin}
+                             """;
+        if (sprtResult.HasValue)
+        {
+            testId = "sprt-" + testId;
+            matchStats += $"\nLLR: {sprtResult.Value.LLR} ({sprtResult.Value.LowerBound},{sprtResult.Value.UpperBound}) Status: {(sprtResult.Value.Status == SPRT.Status.H1 ? "passed" : "failed")}";
+        }
+        AppendToFile(testId, matchStats);
+    }
+
+    private void AppendToFile(string testId, string text)
+    {
         string directoryPath = Path.Combine(FileHelper.AppDataPath, "TestResults");
         Directory.CreateDirectory(directoryPath);
         string fileName = testId + ".txt";
         string fullPath = Path.Combine(directoryPath, fileName);
-        File.AppendAllText(fullPath, "\n" + matchResult.PGN);
+        File.AppendAllText(fullPath, "\n" + text);
     }
 
     private void OnMatchFinished(MiniChallengeManager.MatchResult matchResult)
@@ -131,50 +165,57 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
         });
 
         PrintMatchStatistics(results, newBot, baseBot);
+        SaveFullTestResult(results, newBot, baseBot);
 
         return CreateSuiteResult(groupId, results, elapsed);
     }
 
     private SuiteResult SPRTTest(BotReference newBot, BotReference baseBot, string groupId, (int, int) timeControl)
     {
-        MiniChallengeManager manager = new MiniChallengeManager(newBot, baseBot)
+        (MiniChallengeManager.SPRTResult result, TimeSpan elapsed) = AnsiConsole.Status().Start($"Running SPRT Test ({TimeControlToString(timeControl)})", ctx =>
         {
-            GameDurationMilliseconds = timeControl.Item1,
-            IncrementMilliseconds = timeControl.Item2
-        };
+            ctx.Spinner(Spinner.Known.BouncingBar);
+            MiniChallengeManager manager = new MiniChallengeManager(newBot, baseBot)
+            {
+                GameDurationMilliseconds = timeControl.Item1,
+                IncrementMilliseconds = timeControl.Item2,
+                Debug = true
+            };
 
-        SPRT.SPRTOptions options = new SPRT.SPRTOptions
-        {
-            Elo1 = 30
-        };
-        Stopwatch stopwatch = Stopwatch.StartNew();
-        MiniChallengeManager.SPRTResult result = manager.RunSPRT(fenList, options, OnSPRTMatchFinished);
-        stopwatch.Stop();
+            SPRT.SPRTOptions options = new SPRT.SPRTOptions
+            {
+                Elo1 = 30
+            };
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            MiniChallengeManager.SPRTResult result = manager.RunSPRT(fenList, options, OnSPRTMatchFinished);
+            stopwatch.Stop();
+            return (result, stopwatch.Elapsed);
+        });
+        
+        
+        PrintMatchStatistics(result.Results, newBot, baseBot, CreateSPRTTable(result));
+        SaveFullTestResult(result.Results, newBot, baseBot, result);
 
-        PrintMatchStatistics(result.Results, newBot, baseBot, new Markup($"LLR: {result.LLR}"));
+        return CreateSuiteResult(groupId, result.Results, elapsed);
+    }
 
-        return CreateSuiteResult(groupId, result.Results, stopwatch.Elapsed);
+    private IRenderable CreateSPRTTable(MiniChallengeManager.SPRTResult result)
+    {
+        List<IRenderable> rows =
+        [
+            new Markup($"LLR: [{Color.DodgerBlue1.ToMarkup()}]{result.LLR:0.000}[/] Bounds: ([{Color.DodgerBlue1.ToMarkup()}]{result.LowerBound:0.000}[/], [{Color.DodgerBlue1.ToMarkup()}]{result.UpperBound:0.000}[/])"),
+            new Markup($"Elo: ([{Color.DodgerBlue1.ToMarkup()}]{result.Options.Elo0}[/], [{Color.DodgerBlue1.ToMarkup()}]{result.Options.Elo1}[/]) Status: [{(result.Status == SPRT.Status.H1 ? "green]passed" : "red]failed")}[/]")
+        ];
+        Panel panel = new Panel(new Rows(rows));
+        panel.Header = new PanelHeader("SPRT");
+        panel.RoundedBorder();
+        return panel;
     }
 
     private void PrintMatchStatistics(MiniChallengeManager.MatchResult[] results, BotReference newBot,
         BotReference baseBot, IRenderable? additional = null)
     {
-        int won = results.Count(result =>
-            Arbiter.IsWinResult(result.Result) && result.TesterPlayedWhite == Arbiter.IsWhiteWinsResult(result.Result));
-        int lost = results.Count(result =>
-            Arbiter.IsWinResult(result.Result) && result.TesterPlayedWhite != Arbiter.IsWhiteWinsResult(result.Result));
-        int draw = results.Count(result => Arbiter.IsDrawResult(result.Result));
-        int total = won + lost + draw;
-        double score = won + (double)draw / 2;
-        double percentage = score / total;
-        double elo = Stats.Elo(percentage);
-        double eloMargin = Stats.CalculateEloErrorMargin(won, draw, lost);
-
-        TokenCount newTokens = newBot.GetTokenCount();
-        TokenCount baseTokens = baseBot.GetTokenCount();
-        int newTokensPure = newTokens.total - newTokens.debug;
-        int baseTokensPure = baseTokens.total - baseTokens.debug;
-        int tokenDifference = newTokensPure - baseTokensPure;
+        MatchStatistics ms = new MatchStatistics(results, newBot, baseBot);
 
         string newBotMarkedUp = $"[{Color.DodgerBlue1.ToMarkup()}]{newBot}[/]";
         string baseBotMarkedUp = $"[{Color.IndianRed.ToMarkup()}]{baseBot}[/]";
@@ -189,34 +230,34 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
             new TableColumn(new Markup(baseBotMarkedUp)));
         tokenTable.AddRow(
             new Markup(
-                $"[{(tokenDifference < 0 ? "red" : "green")}]{(tokenDifference > 0 ? "+" : tokenDifference < 0 ? "-" : "")}{Math.Abs(tokenDifference)}[/]"),
-            new Markup(newTokensPure.ToString()), new Markup(baseTokensPure.ToString()));
+                $"[{(ms.TokenDifference < 0 ? "red" : "green")}]{(ms.TokenDifference > 0 ? "+" : ms.TokenDifference < 0 ? "-" : "")}{Math.Abs(ms.TokenDifference)}[/]"),
+            new Markup(ms.NewBotTokens.ToString()), new Markup(ms.BaseBotTokens.ToString()));
 
         int wldWidth = 60;
         BreakdownChart wldChart = new BreakdownChart();
         wldChart.Width(wldWidth);
-        wldChart.AddItem("Wins", won, Color.Green3_1);
-        wldChart.AddItem("Draws", draw, Color.Gray);
-        wldChart.AddItem("Losses", lost, Color.Red3_1);
+        wldChart.AddItem("Wins", ms.GamesWon, Color.Green3_1);
+        wldChart.AddItem("Draws", ms.GamesDrawn, Color.Gray);
+        wldChart.AddItem("Losses", ms.GamesLost, Color.Red3_1);
 
         Table scoreTable = new Table
         {
             Title = new TableTitle("Score"),
             Border = TableBorder.Rounded
         };
-        scoreTable.AddColumns($"Score: [{Color.DodgerBlue1.ToMarkup()}]{score:F1}[/]",
-            $"Elo: [{(elo < 0 ? "red" : "green")}]{elo:0.00}[/] +/-[{Color.DodgerBlue1.ToMarkup()}]{eloMargin}[/]");
+        scoreTable.AddColumns($"Score: [{Color.DodgerBlue1.ToMarkup()}]{ms.Score:F1}[/]",
+            $"Elo: [{(ms.Elo < 0 ? "red" : "green")}]{ms.Elo:0.00}[/] +/-[{Color.DodgerBlue1.ToMarkup()}]{ms.EloMargin:0.0}[/]");
 
         List<IRenderable> rows =
         [
             tokenTable,
             scoreTable,
-            wldChart
         ];
+        
         if (additional != null)
-        {
             rows.Add(additional);
-        }
+        
+        rows.Add(wldChart);
 
         Panel panel = new Panel(new Rows(rows).Expand());
         panel.Header(new PanelHeader($"{newBotMarkedUp} vs {baseBotMarkedUp}"));
@@ -267,5 +308,37 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
         {
             new SuiteGroup("match", "Match")
         };
+    }
+
+    private readonly struct MatchStatistics
+    {
+        public int GamesWon { get; }
+        public int GamesLost { get; }
+        public int GamesDrawn { get; }
+        
+        public double Elo { get; }
+        public double EloMargin { get; }
+        public int NewBotTokens { get; }
+        public int BaseBotTokens { get; }
+
+        public int TotalGames => GamesWon + GamesLost + GamesDrawn;
+        public double Score => GamesWon + (double)GamesDrawn / 2;
+        public double Percentage => Score / TotalGames;
+        public int TokenDifference => NewBotTokens - BaseBotTokens;
+        public MatchStatistics(MiniChallengeManager.MatchResult[] results, BotReference newBot, BotReference baseBot)
+        {
+            GamesWon = results.Count(result =>
+                Arbiter.IsWinResult(result.Result) && result.TesterPlayedWhite == Arbiter.IsWhiteWinsResult(result.Result));
+            GamesLost = results.Count(result =>
+                Arbiter.IsWinResult(result.Result) && result.TesterPlayedWhite != Arbiter.IsWhiteWinsResult(result.Result));
+            GamesDrawn = results.Count(result => Arbiter.IsDrawResult(result.Result));
+            Elo = Stats.Elo(Percentage);
+            EloMargin = Stats.CalculateEloErrorMargin(GamesWon, GamesDrawn, GamesLost);
+
+            TokenCount newTokens = newBot.GetTokenCount();
+            TokenCount baseTokens = baseBot.GetTokenCount();
+            NewBotTokens = newTokens.total - newTokens.debug;
+            BaseBotTokens = baseTokens.total - baseTokens.debug;
+        }
     }
 }
