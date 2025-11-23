@@ -22,6 +22,7 @@ public class MiniChallengeManager
 
     public int MaxMoves = -1;
     public int GameDurationMilliseconds = 60000;
+    public int IncrementMilliseconds = 0;
 
     public MiniChallengeManager(BotReference testBot) : this(testBot,
         new BotReference(PlayerType.StockFish))
@@ -37,12 +38,7 @@ public class MiniChallengeManager
 
     public MatchResult[] PlayMatches(string[] fens, bool parallel = false, Action<MatchResult>? onMatchFinished = null)
     {
-        List<string> doubledFens = new List<string>();
-        foreach (string fen in fens)
-        {
-            doubledFens.Add(fen);
-            doubledFens.Add(fen);
-        }
+        List<string> doubledFens = DoubleFens(fens);
         _matchResults.Clear();
         if (parallel)
         {
@@ -87,6 +83,39 @@ public class MiniChallengeManager
             }
         }
         return _matchResults.ToArray();
+    }
+
+    public SPRTResult RunSPRT(string[] fens, SPRTOptions options)
+    {
+        List<string> doubledFens = DoubleFens(fens);
+        List<MatchResult> matchResults = new();
+        int hypothesis = 0;
+        int fenIndex = 0;
+        int wins = 0;
+        int loss = 0;
+        int draw = 0;
+        while (hypothesis == 0)
+        {
+            bool playsWhite = fenIndex % 2 == 0;
+            string fen = doubledFens[fenIndex];
+            MatchResult matchResult = PlayMatch(fen, playsWhite);
+            if (Arbiter.IsDrawResult(matchResult.Result))
+                draw++;
+            else if (matchResult.TesterPlayedWhite == Arbiter.IsWhiteWinsResult(matchResult.Result))
+                wins++;
+            else
+                loss++;
+            matchResults.Add(matchResult);
+            hypothesis = Stats.SPRT(wins, loss, draw, options.elo0, options.elo1, options.alpha, options.beta);
+            
+            var (LA, LB) = Stats.AlphaBetaWindow(options.alpha, options.beta);
+            Console.WriteLine($"W: {wins} L: {loss} D: {draw} T: {wins + loss + draw}");
+            Console.WriteLine($"LLR: {Stats.LLR(wins, loss, draw, options.elo0, options.elo1)} ({LA}, {LB})");
+            
+            fenIndex = (fenIndex + 1) % doubledFens.Count;
+        }
+
+        return new SPRTResult(matchResults.ToArray(), Stats.LLR(wins, loss, draw, options.elo0, options.elo1));
     }
 
     public MatchResult PlayMatch(string fen, bool? testerPlaysWhite = null, CancellationToken cancellationToken = default)
@@ -169,9 +198,9 @@ public class MiniChallengeManager
         try
         {
             Timer timer = new(GameDurationMilliseconds - timeUsed, GameDurationMilliseconds - opponentTimeUsed,
-                GameDurationMilliseconds);
+                GameDurationMilliseconds, IncrementMilliseconds);
             API.Move move = bot.Think(botBoard, timer);
-            timeUsed += timer.MillisecondsElapsedThisTurn;
+            timeUsed += timer.MillisecondsElapsedThisTurn - IncrementMilliseconds;
             return new Move(move.RawValue);
         }
         catch (Exception e)
@@ -183,5 +212,21 @@ public class MiniChallengeManager
         return Move.NullMove;
     }
 
+    private List<string> DoubleFens(string[] fens)
+    {
+        List<string> doubledFens = new List<string>();
+        foreach (string fen in fens)
+        {
+            doubledFens.Add(fen);
+            doubledFens.Add(fen);
+        }
+
+        return doubledFens;
+    }
+
     public record struct MatchResult(GameResult Result, BotReference newBot, BotReference baseBot, bool TesterPlayedWhite, int FullPlyCount, int PlyCount, FenUtility.PositionInfo Position, string PGN);
+
+    public record struct SPRTResult(MatchResult[] Results, double LLR);
+
+    public record struct SPRTOptions(double elo0 = 0, double elo1 = 10, double alpha = 0.05, double beta = 0.05);
 }
