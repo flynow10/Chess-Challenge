@@ -48,12 +48,12 @@ public class MyBot : IChessBot
             int score = Search(board, depth, 0, -nullScore, nullScore);
             if (OutOfTime)
                 break;
-            Console.WriteLine($"info depth {depth} score {score} ttHits {_ttHits} nodes {_nodes} time {timer.MillisecondsElapsedThisTurn}"); // #DEBUG
+            // Console.WriteLine($"info depth {depth} score {score} ttHits {_ttHits} nodes {_nodes} time {timer.MillisecondsElapsedThisTurn}"); // #DEBUG
             _pv = _currSearch;
             if (Abs(score) >= mateScore - 50)
                 break;
         }
-        Console.WriteLine($"PV: {_pv} Depth: {depth}"); // #DEBUG
+        // Console.WriteLine($"PV: {_pv} Depth: {depth}"); // #DEBUG
         return _pv;
     }
 
