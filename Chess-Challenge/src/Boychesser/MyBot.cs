@@ -87,7 +87,9 @@ public class MyBot : IChessBot {
     public int Negamax(int alpha, int beta, int depth) {
         // abort search if out of time, but we must search at least depth 1
         if (timer.MillisecondsElapsedThisTurn >= maxSearchTime && searchingDepth > 1)
+#pragma warning disable CS8597 // Thrown value may be null.
             throw null;
+#pragma warning restore CS8597 // Thrown value may be null.
 
         nodes++; // #DEBUG
 

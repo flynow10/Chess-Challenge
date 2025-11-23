@@ -17,8 +17,8 @@ public record struct BotReference(PlayerType Type, int SkillLevel = 20, string C
             PlayerType.MyBot => GetSrcDirTokenCount("My Bot", "MyBot.cs"),
             PlayerType.HashBot => BotLoader.CountHashBotTokens(CommitHash),
             PlayerType.Boychesser => GetSrcDirTokenCount("Boychesser", "MyBot.cs"),
-            PlayerType.EvilBot =>  GetSrcDirTokenCount("EvilBot", "EvilBot.cs"),
-            PlayerType.ExtraEvilBot =>   GetSrcDirTokenCount("ExtraEvilBot", "ExtraEvilBot.cs"),
+            PlayerType.EvilBot =>  GetSrcDirTokenCount("Evil Bot", "EvilBot.cs"),
+            PlayerType.ExtraEvilBot =>   GetSrcDirTokenCount("Extra Evil Bot", "ExtraEvilBot.cs"),
             _ => new TokenCount(0,0)
         };
         

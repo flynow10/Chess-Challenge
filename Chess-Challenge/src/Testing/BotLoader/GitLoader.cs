@@ -20,7 +20,7 @@ public static class GitLoader
     public static string LoadMyBotFromHash(string hash)
     {
         using var repo = new Repository(GetRepositoryPath());
-        Commit commit = repo.Commits.First(c => c.Sha == hash);
+        Commit commit = repo.Lookup<Commit>(hash);
         if (commit == null)
         {
             throw new Exception($"Couldn't find commit with hash {hash}");
@@ -53,7 +53,7 @@ public static class GitLoader
     public static string GetCommitMessage(string hash, bool shortMessage = false)
     {
         using var repo = new Repository(GetRepositoryPath());
-        Commit commit = repo.Commits.First(c => c.Sha == hash);
+        Commit commit = repo.Lookup<Commit>(hash);
         if (commit == null)
         {
             throw new Exception($"Couldn't find commit with hash {hash}");

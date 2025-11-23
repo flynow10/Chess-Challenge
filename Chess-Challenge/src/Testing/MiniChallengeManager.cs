@@ -23,6 +23,7 @@ public class MiniChallengeManager
     public int MaxMoves = -1;
     public int GameDurationMilliseconds = 60000;
     public int IncrementMilliseconds = 0;
+    public bool Debug = false;
 
     public MiniChallengeManager(BotReference testBot) : this(testBot,
         new BotReference(PlayerType.StockFish))
@@ -85,37 +86,38 @@ public class MiniChallengeManager
         return _matchResults.ToArray();
     }
 
-    public SPRTResult RunSPRT(string[] fens, SPRTOptions options)
+    public SPRTResult RunSPRT(string[] fens, SPRT.SPRTOptions options, Action<MatchResult>? onMatchFinished = null)
     {
+        Console.WriteLine(options);
         List<string> doubledFens = DoubleFens(fens);
         List<MatchResult> matchResults = new();
-        int hypothesis = 0;
+        SPRT sprt = new SPRT(options);
         int fenIndex = 0;
-        int wins = 0;
-        int loss = 0;
-        int draw = 0;
-        while (hypothesis == 0)
+        while (sprt.CurrentStatus == SPRT.Status.None)
         {
             bool playsWhite = fenIndex % 2 == 0;
             string fen = doubledFens[fenIndex];
             MatchResult matchResult = PlayMatch(fen, playsWhite);
             if (Arbiter.IsDrawResult(matchResult.Result))
-                draw++;
+                sprt.Record(1);
             else if (matchResult.TesterPlayedWhite == Arbiter.IsWhiteWinsResult(matchResult.Result))
-                wins++;
+                sprt.Record(2);
             else
-                loss++;
+                sprt.Record(0);
             matchResults.Add(matchResult);
-            hypothesis = Stats.SPRT(wins, loss, draw, options.elo0, options.elo1, options.alpha, options.beta);
+            onMatchFinished?.Invoke(matchResult);
             
-            var (LA, LB) = Stats.AlphaBetaWindow(options.alpha, options.beta);
-            Console.WriteLine($"W: {wins} L: {loss} D: {draw} T: {wins + loss + draw}");
-            Console.WriteLine($"LLR: {Stats.LLR(wins, loss, draw, options.elo0, options.elo1)} ({LA}, {LB})");
+            if (Debug)
+            {
+                Console.WriteLine();
+                Console.WriteLine($"W: {sprt.Wins} L: {sprt.Losses} D: {sprt.Draws} T: {sprt.Total}");
+                Console.WriteLine($"LLR: {sprt.LLR} ({sprt.LowerBound}, {sprt.UpperBound})");
+            }
             
             fenIndex = (fenIndex + 1) % doubledFens.Count;
         }
 
-        return new SPRTResult(matchResults.ToArray(), Stats.LLR(wins, loss, draw, options.elo0, options.elo1));
+        return new SPRTResult(matchResults.ToArray(), sprt.LLR);
     }
 
     public MatchResult PlayMatch(string fen, bool? testerPlaysWhite = null, CancellationToken cancellationToken = default)
@@ -227,6 +229,4 @@ public class MiniChallengeManager
     public record struct MatchResult(GameResult Result, BotReference newBot, BotReference baseBot, bool TesterPlayedWhite, int FullPlyCount, int PlyCount, FenUtility.PositionInfo Position, string PGN);
 
     public record struct SPRTResult(MatchResult[] Results, double LLR);
-
-    public record struct SPRTOptions(double elo0 = 0, double elo1 = 10, double alpha = 0.05, double beta = 0.05);
 }
