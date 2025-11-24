@@ -89,7 +89,7 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
     }
 
     private void SaveFullTestResult(MiniChallengeManager.MatchResult[] matchResult, BotReference newBot,
-        BotReference baseBot, MiniChallengeManager.SPRTResult? sprtResult = null)
+        BotReference baseBot, TimeSpan elapsed, MiniChallengeManager.SPRTResult? sprtResult = null)
     {
         MatchStatistics ms = new MatchStatistics(matchResult, newBot, baseBot);
         
@@ -109,6 +109,8 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
             testId = "sprt-" + testId;
             matchStats += $"\nLLR: {sprtResult.Value.LLR} ({sprtResult.Value.LowerBound},{sprtResult.Value.UpperBound}) Status: {(sprtResult.Value.Status == SPRT.Status.H1 ? "passed" : "failed")}";
         }
+
+        matchStats += $"\nElapsed: {elapsed.ToString()}";
         AppendToFile(testId, matchStats);
     }
 
@@ -163,8 +165,8 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
             return (results, stopwatch.Elapsed);
         });
 
-        PrintMatchStatistics(results, newBot, baseBot);
-        SaveFullTestResult(results, newBot, baseBot);
+        PrintMatchStatistics(results, newBot, baseBot, elapsed);
+        SaveFullTestResult(results, newBot, baseBot, elapsed);
 
         return CreateSuiteResult(groupId, results, elapsed);
     }
@@ -195,8 +197,8 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
         });
         
         
-        PrintMatchStatistics(result.Results, newBot, baseBot, CreateSPRTTable(result));
-        SaveFullTestResult(result.Results, newBot, baseBot, result);
+        PrintMatchStatistics(result.Results, newBot, baseBot, elapsed, CreateSPRTTable(result));
+        SaveFullTestResult(result.Results, newBot, baseBot, elapsed, result);
 
         return CreateSuiteResult(groupId, result.Results, elapsed);
     }
@@ -215,7 +217,7 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
     }
 
     private void PrintMatchStatistics(MiniChallengeManager.MatchResult[] results, BotReference newBot,
-        BotReference baseBot, IRenderable? additional = null)
+        BotReference baseBot, TimeSpan elapsed, IRenderable? additional = null)
     {
         MatchStatistics ms = new MatchStatistics(results, newBot, baseBot);
 
@@ -259,6 +261,14 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
         
         if (additional != null)
             rows.Add(additional);
+
+        Table timeTable = new Table()
+        {
+            Title = new TableTitle("Time"),
+            Border = TableBorder.Rounded
+        };
+        timeTable.AddColumns($"Elapsed: {elapsed:g}");
+        rows.Add(timeTable);
         
         rows.Add(wldChart);
 
