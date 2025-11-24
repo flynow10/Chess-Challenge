@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using ChessChallenge.Application;
 using ChessChallenge.Chess;
 using Spectre.Console;
@@ -90,7 +89,7 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
     }
 
     private void SaveFullTestResult(MiniChallengeManager.MatchResult[] matchResult, BotReference newBot,
-        BotReference baseBot, MiniChallengeManager.SPRTResult? sprtResult = null)
+        BotReference baseBot, TimeSpan elapsed, MiniChallengeManager.SPRTResult? sprtResult = null)
     {
         MatchStatistics ms = new MatchStatistics(matchResult, newBot, baseBot);
         
@@ -103,13 +102,15 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
                                Base: {ms.BaseBotTokens}
                              Score
                                W: {ms.GamesWon} D: {ms.GamesDrawn} L: {ms.GamesLost} T: {ms.TotalGames}
-                               Elo: {ms.Elo} +/-{ms.EloMargin}
+                               Elo: {ms.Elo} +/-{ms.EloMargin} LOS: {ms.LOS}
                              """;
         if (sprtResult.HasValue)
         {
             testId = "sprt-" + testId;
             matchStats += $"\nLLR: {sprtResult.Value.LLR} ({sprtResult.Value.LowerBound},{sprtResult.Value.UpperBound}) Status: {(sprtResult.Value.Status == SPRT.Status.H1 ? "passed" : "failed")}";
         }
+
+        matchStats += $"\nElapsed: {elapsed.ToString()}";
         AppendToFile(testId, matchStats);
     }
 
@@ -164,28 +165,31 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
             return (results, stopwatch.Elapsed);
         });
 
-        PrintMatchStatistics(results, newBot, baseBot);
-        SaveFullTestResult(results, newBot, baseBot);
+        PrintMatchStatistics(results, newBot, baseBot, elapsed);
+        SaveFullTestResult(results, newBot, baseBot, elapsed);
 
         return CreateSuiteResult(groupId, results, elapsed);
     }
 
     private SuiteResult SPRTTest(BotReference newBot, BotReference baseBot, string groupId, (int, int) timeControl)
     {
-        (MiniChallengeManager.SPRTResult result, TimeSpan elapsed) = AnsiConsole.Status().Start($"Running SPRT Test ({TimeControlToString(timeControl)})", ctx =>
+        MiniChallengeManager manager = new MiniChallengeManager(newBot, baseBot)
+        {
+            GameDurationMilliseconds = timeControl.Item1,
+            IncrementMilliseconds = timeControl.Item2,
+            Debug = true
+        };
+        
+        SPRT.SPRTOptions options = new SPRT.SPRTOptions
+        {
+            Elo1 = 10
+        };
+        
+        string status = $"Running SPRT Test... TC: ({TimeControlToString(timeControl)}) Options: {options}";
+        (MiniChallengeManager.SPRTResult result, TimeSpan elapsed) = AnsiConsole.Status().Start(status, ctx =>
         {
             ctx.Spinner(Spinner.Known.BouncingBar);
-            MiniChallengeManager manager = new MiniChallengeManager(newBot, baseBot)
-            {
-                GameDurationMilliseconds = timeControl.Item1,
-                IncrementMilliseconds = timeControl.Item2,
-                Debug = true
-            };
 
-            SPRT.SPRTOptions options = new SPRT.SPRTOptions
-            {
-                Elo1 = 30
-            };
             Stopwatch stopwatch = Stopwatch.StartNew();
             MiniChallengeManager.SPRTResult result = manager.RunSPRT(fenList, options, OnSPRTMatchFinished);
             stopwatch.Stop();
@@ -193,8 +197,8 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
         });
         
         
-        PrintMatchStatistics(result.Results, newBot, baseBot, CreateSPRTTable(result));
-        SaveFullTestResult(result.Results, newBot, baseBot, result);
+        PrintMatchStatistics(result.Results, newBot, baseBot, elapsed, CreateSPRTTable(result));
+        SaveFullTestResult(result.Results, newBot, baseBot, elapsed, result);
 
         return CreateSuiteResult(groupId, result.Results, elapsed);
     }
@@ -213,7 +217,7 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
     }
 
     private void PrintMatchStatistics(MiniChallengeManager.MatchResult[] results, BotReference newBot,
-        BotReference baseBot, IRenderable? additional = null)
+        BotReference baseBot, TimeSpan elapsed, IRenderable? additional = null)
     {
         MatchStatistics ms = new MatchStatistics(results, newBot, baseBot);
 
@@ -246,7 +250,8 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
             Border = TableBorder.Rounded
         };
         scoreTable.AddColumns($"Score: [{Color.DodgerBlue1.ToMarkup()}]{ms.Score:F1}[/]",
-            $"Elo: [{(ms.Elo < 0 ? "red" : "green")}]{ms.Elo:0.00}[/] +/-[{Color.DodgerBlue1.ToMarkup()}]{ms.EloMargin:0.0}[/]");
+            $"Elo: [{(ms.Elo < 0 ? "red" : "green")}]{ms.Elo:0.00}[/] +/-[{Color.DodgerBlue1.ToMarkup()}]{ms.EloMargin:0.0}[/]",
+            $"LOS: [{Color.DodgerBlue1.ToMarkup()}]{ms.LOS:P2}[/]");
 
         List<IRenderable> rows =
         [
@@ -256,6 +261,14 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
         
         if (additional != null)
             rows.Add(additional);
+
+        Table timeTable = new Table()
+        {
+            Title = new TableTitle("Time"),
+            Border = TableBorder.Rounded
+        };
+        timeTable.AddColumns($"Elapsed: {elapsed:g}");
+        rows.Add(timeTable);
         
         rows.Add(wldChart);
 
@@ -318,6 +331,7 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
         
         public double Elo { get; }
         public double EloMargin { get; }
+        public double LOS { get; }
         public int NewBotTokens { get; }
         public int BaseBotTokens { get; }
 
@@ -332,6 +346,9 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
             GamesLost = results.Count(result =>
                 Arbiter.IsWinResult(result.Result) && result.TesterPlayedWhite != Arbiter.IsWhiteWinsResult(result.Result));
             GamesDrawn = results.Count(result => Arbiter.IsDrawResult(result.Result));
+            
+            LOS = Stats.LOS([GamesLost, GamesDrawn, GamesWon]);
+            
             Elo = Stats.Elo(Percentage);
             EloMargin = Stats.CalculateEloErrorMargin(GamesWon, GamesDrawn, GamesLost);
 

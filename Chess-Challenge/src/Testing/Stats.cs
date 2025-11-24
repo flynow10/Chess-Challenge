@@ -40,7 +40,7 @@ public static class Stats
         return N * LLR(pdf, s0, s1);
     }
 
-    private static (double, (double, double)[]) ResultsToPdf(int[] results)
+    public static double[] Regularize(int[] results)
     {
         double epsilon = 1e-3;
         double[] regularized = new double[results.Length];
@@ -56,6 +56,12 @@ public static class Stats
             }
         }
 
+        return regularized;
+    }
+
+    private static (double, (double, double)[]) ResultsToPdf(int[] results)
+    {
+        double[] regularized = Regularize(results);
         double N = regularized.Sum();
         double l = regularized.Length;
         return (N, regularized.Select((result, i) => (i / (l - 1), result / N)).ToArray());
@@ -98,6 +104,18 @@ public static class Stats
     //
     //     return (s, var);
     // }
+
+    public static double LOS(int[] results)
+    {
+        double[] regularized = Regularize(results);
+        double games = regularized.Sum();
+        double mu = regularized.Select((score, i) => score * ((double)i / 2)).Sum() / games;
+        double mu_ = (double)(results.Length - 1) / 2 * mu;
+        double var = regularized.Select((score, i) => score * Math.Pow((double)i / 2 - mu_, 2)).Sum() / games;
+        double stdev = Math.Sqrt(var);
+
+        return Phi((mu - 0.5) / (stdev / Math.Sqrt(games)));
+    }
     
     public static double Elo(double percentage)
     {
@@ -130,6 +148,53 @@ public static class Stats
         double margin = Math.Round(difference / 2);
         return margin;
     }
+
+    public static double Phi(double x)
+    {
+        // constants
+        double a1 = 0.254829592;
+        double a2 = -0.284496736;
+        double a3 = 1.421413741;
+        double a4 = -1.453152027;
+        double a5 = 1.061405429;
+        double p = 0.3275911;
+        
+        // Save the sign of x
+        int sign = 1;
+        if (x < 0)
+            sign = -1;
+        x = Math.Abs(x) / Math.Sqrt(2.0);
+        
+        // A&S formula 7.1.26
+        double t = 1.0 / (1.0 + p*x);
+        double y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t * Math.Exp(-x*x);
+        
+        return 0.5 * (1.0 + sign*y);
+    }
+    
+    public static double Erf(double x)
+    {
+        // constants
+        double a1 = 0.254829592;
+        double a2 = -0.284496736;
+        double a3 = 1.421413741;
+        double a4 = -1.453152027;
+        double a5 = 1.061405429;
+        double p = 0.3275911;
+
+        // Save the sign of x
+        int sign = 1;
+        if (x < 0)
+            sign = -1;
+        x = Math.Abs(x);
+
+        // A&S formula 7.1.26
+        double t = 1.0 / (1.0 + p*x);
+        double y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*Math.Exp(-x*x);
+
+        return sign*y;
+    }
+
     public static double PhiInv(double p)
     {
         return Math.Sqrt(2) * CalculateInverseErrorFunction(2 * p - 1);
