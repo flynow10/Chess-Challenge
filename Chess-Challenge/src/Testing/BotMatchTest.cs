@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using ChessChallenge.Application;
 using ChessChallenge.Chess;
 using Spectre.Console;
@@ -181,7 +180,7 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
         
         SPRT.SPRTOptions options = new SPRT.SPRTOptions
         {
-            Elo1 = 30
+            Elo1 = 10
         };
         
         string status = $"Running SPRT Test... TC: ({TimeControlToString(timeControl)}) Options: {options}";

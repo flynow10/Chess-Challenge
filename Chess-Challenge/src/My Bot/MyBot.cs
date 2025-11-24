@@ -20,6 +20,7 @@ public class MyBot : IChessBot
     int[] _pieceValues = { 0, 100, 300, 300, 500, 900, 0 }, _phaseValues = {0, 0, 1, 1, 2, 4, 0};
     const int mateScore = 100000, nullScore = 9999999, ttSize = 1 << 20;
     int _nodes, _ttHits, _betaCutoffs; // #DEBUG
+    int _searchDepth = 1;
     
     TTEntry[] _tt = new TTEntry[ttSize];
 
@@ -52,10 +53,9 @@ public class MyBot : IChessBot
         _timer = timer;
         _nodes = _betaCutoffs = _ttHits = 0; // #DEBUG
         _pv = default;
-        int depth = 1;
-        for (; depth < 50; depth++)
+        for (_searchDepth = 1; _searchDepth < 50; _searchDepth++)
         {
-            int score = Search(board, depth, 0, -nullScore, nullScore);
+            int score = Search(board, _searchDepth, 0, -nullScore, nullScore);
             if (OutOfTime)
                 break;
             // Console.WriteLine($"info depth {depth} score {score} ttHits {_ttHits} nodes {_nodes} time {timer.MillisecondsElapsedThisTurn}"); // #DEBUG
@@ -67,7 +67,7 @@ public class MyBot : IChessBot
         return _pv;
     }
 
-    bool OutOfTime => _timer.MillisecondsElapsedThisTurn >= _timer.MillisecondsRemaining / 30;
+    bool OutOfTime => _timer.MillisecondsElapsedThisTurn >= _timer.MillisecondsRemaining / 30 && _searchDepth > 1;
     
     int Search(Board board, int depth, int plyFromRoot, int alpha, int beta)
     {
