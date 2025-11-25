@@ -17,7 +17,7 @@ public class MyBot : IChessBot
     
     Move _pv = Move.NullMove, _currSearch;
     Timer _timer;
-    int[] _pieceValues = { 0, 100, 300, 300, 500, 900, 0 }, _phaseValues = {0, 0, 1, 1, 2, 4, 0};
+    int[] _pieceValues = { 0, 100, 300, 300, 500, 900, 0 };
     const int mateScore = 100000, nullScore = 9999999, ttSize = 1 << 20;
     int _nodes, _ttHits, _betaCutoffs; // #DEBUG
     int _searchDepth = 1;
@@ -178,9 +178,9 @@ public class MyBot : IChessBot
                     if(!white)
                         square = new Square(square.File, 7 - square.Rank);
                     int pieceSquareValue = GetPieceSquareValue(pieceType - 1, square.Index);
-                    phase += _phaseValues[pieceType];
                     mid += pieceSquareValue + _pieceValues[pieceType];
                     end += (pieceType == 6 ? GetPieceSquareValue(6, square.Index) : pieceSquareValue) + _pieceValues[pieceType];
+                    phase += 0x0421100 >> pieceType * 4 & 0xf;
                 }
             }
 
