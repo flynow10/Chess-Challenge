@@ -15,7 +15,7 @@ public class MyBot : IChessBot
     // 2 => Upper bound or All-Node
     record struct TTEntry(ulong key, Move move, int score, int depth, int type);
     
-    Move _pv = Move.NullMove, _currSearch;
+    Move _pv, _currSearch;
     Timer _timer;
     Board _board;
     const int mateScore = 100000, nullScore = 9999999, ttSize = 1 << 20;
@@ -43,7 +43,6 @@ public class MyBot : IChessBot
         _board = board;
         _timer = timer;
         _nodes = _ttHits = 0; // #DEBUG
-        _pv = default;
         for (_searchDepth = 1; _searchDepth < 50; _searchDepth++)
         {
             int score = Search(_searchDepth, 0, -nullScore, nullScore);
@@ -51,8 +50,6 @@ public class MyBot : IChessBot
                 break;
             Logger.WriteLine(Logger.LogLevel.Full, $"info depth {_searchDepth} score {score} ttHits {_ttHits} nodes {_nodes} time {timer.MillisecondsElapsedThisTurn}"); // #DEBUG
             _pv = _currSearch;
-            if (Abs(score) >= mateScore - 50)
-                break;
         }
         Logger.WriteLine(Logger.LogLevel.PV, $"PV: {_pv} Depth: {_searchDepth}"); // #DEBUG
         return _pv;
@@ -119,10 +116,7 @@ public class MyBot : IChessBot
             // Negamax a/b search 
             _board.MakeMove(move);
             
-            if (_board.IsRepeatedPosition())
-                score = 0;
-            else 
-                score = -Search(depth - 1, plyFromRoot + 1, -beta, -alpha);
+            score = _board.IsRepeatedPosition() ? 0 : -Search(depth - 1, plyFromRoot + 1, -beta, -alpha);
             
             _board.UndoMove(move);
             
