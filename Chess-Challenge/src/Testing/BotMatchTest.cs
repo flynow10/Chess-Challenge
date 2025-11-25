@@ -6,6 +6,7 @@ using System.Linq;
 using ChessChallenge.API;
 using ChessChallenge.Application;
 using ChessChallenge.Chess;
+using ChessChallenge.Testing.Utils;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 

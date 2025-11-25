@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using LibGit2Sharp;
+using Spectre.Console;
 
-namespace ChessChallenge.Testing.BotLoader;
+namespace ChessChallenge.Testing.Utils;
 
 public static class GitLoader
 {
@@ -61,5 +62,34 @@ public static class GitLoader
         if(shortMessage)
             return commit.MessageShort;
         return commit.Message;
+    }
+    
+    public static string AskCommitHash()
+    {
+        List<string> commits = GitLoader.GetRecentCommits();
+        string mainHash = GitLoader.GetMainCommit();
+        
+        commits.Insert(0, "main");
+
+        string hash = AnsiConsole.Prompt(new SelectionPrompt<string>()
+            .Title("Which commit would you like to test against?")
+            .AddChoices(commits)
+            .UseConverter(hash =>
+            {
+                if (hash == "main")
+                {
+                    return "main - " + GitLoader.GetCommitMessage(mainHash, true);
+                }
+                
+                return hash.Substring(0, 7) + " - " + GitLoader.GetCommitMessage(hash, true);
+            })
+        );
+
+        if (hash == "main")
+        {
+            return mainHash;
+        }
+
+        return hash;
     }
 }

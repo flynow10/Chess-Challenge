@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using ChessChallenge.Testing.Utils;
 
 namespace ChessChallenge.Testing;
 

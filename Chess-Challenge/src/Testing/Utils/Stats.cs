@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace ChessChallenge.Testing;
+namespace ChessChallenge.Testing.Utils;
 
 public static class Stats
 {

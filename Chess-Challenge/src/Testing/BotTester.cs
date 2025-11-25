@@ -1,11 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using ChessChallenge.API;
 using ChessChallenge.Application;
-using ChessChallenge.Testing.BotLoader;
-using LibGit2Sharp;
+using ChessChallenge.Testing.Utils;
 using Spectre.Console;
 
 namespace ChessChallenge.Testing;
@@ -67,40 +64,13 @@ public class BotTester
 
         if (bot.Type == PlayerType.HashBot)
         {
-            bot.CommitHash = AskCommitHash();
+            bot.CommitHash = GitLoader.AskCommitHash();
         }
 
         return bot;
     }
 
-    private string AskCommitHash()
-    {
-        List<string> commits = GitLoader.GetRecentCommits();
-        string mainHash = GitLoader.GetMainCommit();
-        
-        commits.Insert(0, "main");
-
-        string hash = AnsiConsole.Prompt(new SelectionPrompt<string>()
-            .Title("Which commit would you like to test against?")
-            .AddChoices(commits)
-            .UseConverter(hash =>
-            {
-                if (hash == "main")
-                {
-                    return "main - " + GitLoader.GetCommitMessage(mainHash, true);
-                }
-                
-                return hash.Substring(0, 7) + " - " + GitLoader.GetCommitMessage(hash, true);
-            })
-        );
-
-        if (hash == "main")
-        {
-            return mainHash;
-        }
-
-        return hash;
-    }
+    
 
 
     enum SuiteOptionType

@@ -5,9 +5,11 @@ using Raylib_cs;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using ChessChallenge.API;
 using ChessChallenge.Chess;
 using ChessChallenge.Testing;
+using ChessChallenge.Testing.Utils;
+using Spectre.Console;
+using Color = Spectre.Console.Color;
 
 namespace ChessChallenge.Application
 {
@@ -22,6 +24,34 @@ namespace ChessChallenge.Application
             {
                 switch (args[0])
                 {
+                    case "compare":
+                        BotReference myBot = new BotReference(PlayerType.MyBot);
+                        BotReference hashBot = new BotReference(PlayerType.HashBot, 20, GitLoader.AskCommitHash());
+                        TokenCount myBotTokens = myBot.GetTokenCount();
+                        TokenCount hashBotTokens = hashBot.GetTokenCount();
+
+                        int myBotTokensPure = myBotTokens.total - myBotTokens.debug;
+                        int hashBotTokensPure = hashBotTokens.total - hashBotTokens.debug;
+                        
+                        int tokenDifference = myBotTokensPure - hashBotTokensPure;
+                        
+                        string myBotMarkedUp = $"[{Color.DodgerBlue1.ToMarkup()}]{myBot}[/]";
+                        string hashBotMarkedUp = $"[{Color.IndianRed.ToMarkup()}]{hashBot}[/]";
+                        
+                        Table tokenTable = new Table
+                        {
+                            Title = new TableTitle("Tokens"),
+                            Border = TableBorder.Rounded
+                        };
+                        tokenTable.AddColumns(new TableColumn("Diff"), new TableColumn(new Markup(myBotMarkedUp)),
+                            new TableColumn(new Markup(hashBotMarkedUp)));
+                        tokenTable.AddRow(
+                            new Markup(
+                                $"[{(tokenDifference < 0 ? "red" : "green")}]{(tokenDifference > 0 ? "+" : tokenDifference < 0 ? "-" : "")}{Math.Abs(tokenDifference)}[/]"),
+                            new Markup(myBotTokensPure.ToString()), new Markup(hashBotTokensPure.ToString()));
+                        
+                        AnsiConsole.Write(tokenTable);
+                        return;
                     case "bot-test":
                         BotTester botTester = new BotTester();
                         botTester.Run();
@@ -112,7 +142,7 @@ namespace ChessChallenge.Application
                     qPressed = false;
                 }
                 Raylib.BeginDrawing();
-                Raylib.ClearBackground(new Color(22, 22, 22, 255));
+                Raylib.ClearBackground(new Raylib_cs.Color(22, 22, 22, 255));
                 Raylib.BeginMode2D(cam);
 
                 controller.Update();
