@@ -21,7 +21,7 @@ public class MyBot : IChessBot
     int _nodes, _ttHits; // #DEBUG
     int _searchDepth = 1;
     
-    TTEntry[] _tt = new TTEntry[0x100000];
+    TTEntry[] _tt = new TTEntry[0x800000];
 
     ulong[] _pieceSquareTables =
     {
@@ -63,7 +63,7 @@ public class MyBot : IChessBot
 
         // Transposition table
         ulong key = _board.ZobristKey;
-        ref TTEntry entry = ref _tt[key % 0x100000];
+        ref TTEntry entry = ref _tt[key % 0x800000];
         bool qSearch = depth <= 0,
             ttHit = entry.key == key;
         
