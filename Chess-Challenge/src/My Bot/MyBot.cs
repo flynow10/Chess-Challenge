@@ -124,8 +124,6 @@ public class MyBot : IChessBot
                 bestScore = score;
                 bestMove = move;
                 alpha = Max(alpha, bestScore);
-                if (plyFromRoot == 0)
-                    _currSearch = bestMove;
             }
 
             // Beta cutoff
@@ -146,6 +144,7 @@ public class MyBot : IChessBot
                 bestScore >= beta ? 1 : 
                 alpha == originalAlpha ? 2 : 0);
         
+        _currSearch = bestMove;
         return bestScore;
     }
 
@@ -158,11 +157,10 @@ public class MyBot : IChessBot
         {
             for (int pieceType = 1; pieceType <= 6; pieceType++)
             {
-                Square square;
                 ulong bb = _board.GetPieceBitboard((PieceType) pieceType, white);
                 while (bb != 0)
                 {
-                    square = new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref bb));
+                    var square = new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref bb));
                     if(!white)
                         square = new Square(square.File, 7 - square.Rank);
                     int pieceSquareValue = GetPieceSquareValue(pieceType - 1, square.Index),
