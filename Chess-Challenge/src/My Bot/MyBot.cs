@@ -17,7 +17,6 @@ public class MyBot : IChessBot
     
     Move _pv = Move.NullMove, _currSearch;
     Timer _timer;
-    int[] _pieceValues = { 0, 100, 300, 300, 500, 900, 0 };
     const int mateScore = 100000, nullScore = 9999999, ttSize = 1 << 20;
     int _nodes, _ttHits, _betaCutoffs; // #DEBUG
     int _searchDepth = 1;
@@ -178,8 +177,13 @@ public class MyBot : IChessBot
                     if(!white)
                         square = new Square(square.File, 7 - square.Rank);
                     int pieceSquareValue = GetPieceSquareValue(pieceType - 1, square.Index);
-                    mid += pieceSquareValue + _pieceValues[pieceType];
-                    end += (pieceType == 6 ? GetPieceSquareValue(6, square.Index) : pieceSquareValue) + _pieceValues[pieceType];
+                    // Pack piece values into single number - saves 4 tokens over array
+                    // int[] _pieceValues = { 0, 100, 300, 300, 500, 900, 0 };
+                    int value = (0x0953310 >> pieceType * 4 & 0xf) * 100;
+                    mid += pieceSquareValue + value;
+                    end += (pieceType == 6 ? GetPieceSquareValue(6, square.Index) : pieceSquareValue) + value;
+                    // pack phase values into single number - saves 7 tokens over array
+                    // int[] _phaseValues = { 0, 0, 1, 1, 2, 4, 0 };
                     phase += 0x0421100 >> pieceType * 4 & 0xf;
                 }
             }
