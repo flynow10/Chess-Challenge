@@ -74,7 +74,7 @@ public static class Tester {
         MyBot bot = new();
         MethodInfo? evaluatePositionMove =
             typeof(MyBot).GetMethod("EvaluatePosition", BindingFlags.Instance | BindingFlags.NonPublic);
-        UCIBot.UCIBot stockfish = new UCIBot.UCIBot(UCIBot.UCIBot.STOCKFISH_PATH, false);
+        UCIBot.UCIBot stockfish = new UCIBot.UCIBot(UCIBot.UCIBot.STOCKFISH_PATH);
         Dictionary<string, int> gamePhaseMoveCounts =
             new() { { "Early Game", 15 }, { "Mid Game", 25 }, { "End Game", 50 } };
         
@@ -324,7 +324,7 @@ public static class Tester {
             Board = new();
             Board.LoadPosition(fen);
             Bot = new MyBot();
-            Stockfish = new UCIBot.UCIBot(UCIBot.UCIBot.STOCKFISH_PATH, false);
+            Stockfish = new UCIBot.UCIBot(UCIBot.UCIBot.STOCKFISH_PATH);
             GameResult = GameResult.NotStarted;
             if (botPlaysWhite == null)
             {

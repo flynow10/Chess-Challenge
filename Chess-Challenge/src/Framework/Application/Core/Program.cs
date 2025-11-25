@@ -5,6 +5,7 @@ using Raylib_cs;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using ChessChallenge.API;
 using ChessChallenge.Chess;
 using ChessChallenge.Testing;
 

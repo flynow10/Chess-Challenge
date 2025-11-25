@@ -245,7 +245,7 @@ namespace ChessChallenge.Application
                 PlayerType.EvilBot => new EvilBot(),
                 PlayerType.ExtraEvilBot => new ExtraEvilBot(),
                 PlayerType.PawnBot => new PawnBot(),
-                PlayerType.StockFish => new UCIBot.UCIBot("/opt/homebrew/bin/stockfish", false, skillLevel),
+                PlayerType.StockFish => new UCIBot.UCIBot("/opt/homebrew/bin/stockfish", skillLevel),
                 PlayerType.StockFishV3 => new UCIBot.UCIBot(Path.Combine(FileHelper.GetSrcDir()!, "StockfishV3",
                     "stockfish")),
                 PlayerType.Boychesser => new Boychesser.MyBot(),

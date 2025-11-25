@@ -62,7 +62,8 @@ public class MyBot : IChessBot {
                 if (Abs(lastScore - Negamax(lastScore - 20, lastScore + 20, searchingDepth)) >= 20)
                     Negamax(-32000, 32000, searchingDepth);
                 rootBestMove = searchBestMove;
-                Console.WriteLine( // #DEBUG
+                Logger.WriteLine( // #DEBUG
+                    Logger.LogLevel.Full, // #DEBUG
                     "info depth {0} time {1} nodes {2} pv {3} score cp {4} nps {5}", // #DEBUG
                     searchingDepth, // #DEBUG
                     timer.MillisecondsElapsedThisTurn, // #DEBUG

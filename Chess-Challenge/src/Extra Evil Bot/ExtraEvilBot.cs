@@ -146,13 +146,13 @@ public class ExtraEvilBot : IChessBot {
         ttHits = 0; // #DEBUG
         Move bestMove = Move.NullMove;
         int ttFilledCount = tt.Count(e => e.move != Move.NullMove); // #DEBUG
-        Console.WriteLine($"(ExtraEvilBot) info ttCount {ttFilledCount} ttPercentFilled {ttFilledCount / (float)tt.Length}"); // #DEBUG
+        Logger.WriteLine(Logger.LogLevel.PV, $"(ExtraEvilBot) info ttCount {ttFilledCount} ttPercentFilled {ttFilledCount / (float)tt.Length}"); // #DEBUG
         for(int depth = 1; depth <= 50; depth++) {
             int score = Search(board, timer, -30000, 30000, depth, 0);
             if(timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30)
                 break;
             if(timer.MillisecondsElapsedThisTurn != 0) // #DEBUG
-                Console.WriteLine($"(ExtraEvilBot) info depth {depth} score cp {score} time {timer.MillisecondsElapsedThisTurn} pv {bestmoveRoot} nodes {nodes} nps {nodes * 1000 / (ulong)timer.MillisecondsElapsedThisTurn} ttHits {ttHits}"); // #DEBUG
+                Logger.WriteLine(Logger.LogLevel.Full, $"(ExtraEvilBot) info depth {depth} score cp {score} time {timer.MillisecondsElapsedThisTurn} pv {bestmoveRoot} nodes {nodes} nps {nodes * 1000 / (ulong)timer.MillisecondsElapsedThisTurn} ttHits {ttHits}"); // #DEBUG
             bestMove = bestmoveRoot;
         }
         return bestMove;

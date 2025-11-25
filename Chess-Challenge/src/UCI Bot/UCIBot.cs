@@ -11,8 +11,6 @@ public class UCIBot : IChessBot
 {
     private Process botProcess;
 
-    private bool displayOutput;
-
     public static string STOCKFISH_PATH = "/opt/homebrew/bin/stockfish";
 
     public static List<Process> Processes = new();
@@ -26,12 +24,11 @@ public class UCIBot : IChessBot
     /// </summary>
     private int _skillLevel = 20;
 
-    public UCIBot(String pathToExecutable, bool displayOutput = true, int skillLevel = 20)
+    public UCIBot(String pathToExecutable, int skillLevel = 20)
     {
         var botExecutable = pathToExecutable;
 
         _skillLevel = skillLevel;
-        this.displayOutput = displayOutput;
 
         botProcess = new();
         Processes.Add(botProcess);
@@ -74,10 +71,7 @@ public class UCIBot : IChessBot
         int eval = 0;
         while ((line = Outs().ReadLine()) != null)
         {
-            if (displayOutput)
-            {
-                Console.WriteLine(line);
-            }
+            Logger.WriteLine(Logger.LogLevel.Full, line);
             if (line.Contains("score"))
             {
                 Match mateMatch = Regex.Match(line, "\\smate\\s(-?\\d*)");
@@ -123,10 +117,7 @@ public class UCIBot : IChessBot
 
         while ((line = Outs().ReadLine()) != null)
         {
-            if (displayOutput)
-            {
-                Console.WriteLine(line.Substring(0, Math.Min(72, line.Length)));
-            }
+            Logger.WriteLine(line.StartsWith("bestmove") ? Logger.LogLevel.PV : Logger.LogLevel.Full, line.Substring(0, Math.Min(72, line.Length)));
             if (line.StartsWith("bestmove"))
             {
                 var moveStr = line.Split()[1];

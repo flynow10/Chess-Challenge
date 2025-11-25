@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using ChessChallenge.API;
 using ChessChallenge.Application;
 using ChessChallenge.Chess;
 using Spectre.Console;
@@ -136,6 +137,7 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
 
     public override SuiteResult RunSuiteGroup(BotReference newBot, BotReference baseBot, string groupId)
     {
+        Logger.Level = Logger.LogLevel.None;
         int suiteSize = AskSuiteSize();
 
         var timeControl = AskTimeControl();
@@ -167,6 +169,7 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
 
         PrintMatchStatistics(results, newBot, baseBot, elapsed);
         SaveFullTestResult(results, newBot, baseBot, elapsed);
+        Logger.Level = Logger.LogLevel.Full;
 
         return CreateSuiteResult(groupId, results, elapsed);
     }
@@ -199,6 +202,7 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
         
         PrintMatchStatistics(result.Results, newBot, baseBot, elapsed, CreateSPRTTable(result));
         SaveFullTestResult(result.Results, newBot, baseBot, elapsed, result);
+        Logger.Level = Logger.LogLevel.Full;
 
         return CreateSuiteResult(groupId, result.Results, elapsed);
     }

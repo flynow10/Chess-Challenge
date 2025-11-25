@@ -43,7 +43,7 @@ public record struct BotReference(PlayerType Type, int SkillLevel = 20, string C
             PlayerType.EvilBot => new EvilBot(),
             PlayerType.ExtraEvilBot => new ExtraEvilBot(),
             PlayerType.PawnBot => new PawnBot(),
-            PlayerType.StockFish => new UCIBot.UCIBot("/opt/homebrew/bin/stockfish", false, SkillLevel),
+            PlayerType.StockFish => new UCIBot.UCIBot("/opt/homebrew/bin/stockfish", SkillLevel),
             PlayerType.StockFishV3 => new UCIBot.UCIBot(Path.Combine(FileHelper.GetSrcDir()!, "StockfishV3",
                 "stockfish")),
             PlayerType.Boychesser => new Boychesser.MyBot(),
