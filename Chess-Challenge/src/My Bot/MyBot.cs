@@ -18,11 +18,10 @@ public class MyBot : IChessBot
     Move _pv, _currSearch;
     Timer _timer;
     Board _board;
-    const int mateScore = 100000, nullScore = 9999999, ttSize = 1 << 20;
     int _nodes, _ttHits; // #DEBUG
     int _searchDepth = 1;
     
-    TTEntry[] _tt = new TTEntry[ttSize];
+    TTEntry[] _tt = new TTEntry[0x100000];
 
     ulong[] _pieceSquareTables =
     {
@@ -45,7 +44,7 @@ public class MyBot : IChessBot
         _nodes = _ttHits = 0; // #DEBUG
         for (_searchDepth = 1; _searchDepth < 50; _searchDepth++)
         {
-            int score = Search(_searchDepth, 0, -nullScore, nullScore);
+            int score = Search(_searchDepth, 0, -9999999, 9999999);
             if (OutOfTime)
                 break;
             Logger.WriteLine(Logger.LogLevel.Full, $"info depth {_searchDepth} score {score} ttHits {_ttHits} nodes {_nodes} time {timer.MillisecondsElapsedThisTurn}"); // #DEBUG
@@ -60,11 +59,11 @@ public class MyBot : IChessBot
     int Search(int depth, int plyFromRoot, int alpha, int beta)
     {
         _nodes++; // #DEBUG
-        if (OutOfTime) return nullScore;
+        if (OutOfTime) return 9999999;
 
         // Transposition table
         ulong key = _board.ZobristKey;
-        TTEntry entry = _tt[key % ttSize];
+        ref TTEntry entry = ref _tt[key % 0x100000];
         bool qSearch = depth <= 0,
             ttHit = entry.key == key;
         
@@ -80,7 +79,7 @@ public class MyBot : IChessBot
         } // #DEBUG
         
         int i = 0, 
-            bestScore = qSearch ? Evaluate() : -nullScore,
+            bestScore = qSearch ? Evaluate() : -9999999,
             originalAlpha = alpha,
             score;
         Move bestMove = default;
@@ -99,7 +98,7 @@ public class MyBot : IChessBot
         if (!qSearch && moves.Length == 0)
         {
             if (_board.IsInCheck())
-                return -mateScore + plyFromRoot;
+                return plyFromRoot - 100000;
             return 0;
         }
         
@@ -136,7 +135,7 @@ public class MyBot : IChessBot
 
         // Save to tt table only if valid move
         if (!OutOfTime)
-            _tt[key % ttSize] = new TTEntry(
+            entry = new TTEntry(
                 key, 
                 bestMove, 
                 bestScore, 
