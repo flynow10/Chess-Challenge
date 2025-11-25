@@ -17,8 +17,9 @@ public class MyBot : IChessBot
     
     Move _pv = Move.NullMove, _currSearch;
     Timer _timer;
+    Board _board;
     const int mateScore = 100000, nullScore = 9999999, ttSize = 1 << 20;
-    int _nodes, _ttHits, _betaCutoffs; // #DEBUG
+    int _nodes, _ttHits; // #DEBUG
     int _searchDepth = 1;
     
     TTEntry[] _tt = new TTEntry[ttSize];
@@ -39,12 +40,13 @@ public class MyBot : IChessBot
     
     public Move Think(Board board, Timer timer)
     {
+        _board = board;
         _timer = timer;
-        _nodes = _betaCutoffs = _ttHits = 0; // #DEBUG
+        _nodes = _ttHits = 0; // #DEBUG
         _pv = default;
         for (_searchDepth = 1; _searchDepth < 50; _searchDepth++)
         {
-            int score = Search(board, _searchDepth, 0, -nullScore, nullScore);
+            int score = Search(_searchDepth, 0, -nullScore, nullScore);
             if (OutOfTime)
                 break;
             Logger.WriteLine(Logger.LogLevel.Full, $"info depth {_searchDepth} score {score} ttHits {_ttHits} nodes {_nodes} time {timer.MillisecondsElapsedThisTurn}"); // #DEBUG
@@ -58,13 +60,13 @@ public class MyBot : IChessBot
 
     bool OutOfTime => _timer.MillisecondsElapsedThisTurn >= _timer.MillisecondsRemaining / 30 && _searchDepth > 1;
     
-    int Search(Board board, int depth, int plyFromRoot, int alpha, int beta)
+    int Search(int depth, int plyFromRoot, int alpha, int beta)
     {
         _nodes++; // #DEBUG
         if (OutOfTime) return nullScore;
 
         // Transposition table
-        ulong key = board.ZobristKey;
+        ulong key = _board.ZobristKey;
         TTEntry entry = _tt[key % ttSize];
         bool qSearch = depth <= 0,
             ttHit = entry.key == key;
@@ -80,8 +82,8 @@ public class MyBot : IChessBot
             return entry.score;
         } // #DEBUG
         
-        int i, 
-            bestScore = qSearch ? Evaluate(board) : -nullScore,
+        int i = 0, 
+            bestScore = qSearch ? Evaluate() : -nullScore,
             originalAlpha = alpha,
             score;
         Move bestMove = default;
@@ -94,38 +96,35 @@ public class MyBot : IChessBot
             alpha = Max(alpha, bestScore);
         }
         
-        Move[] moves = board.GetLegalMoves(qSearch);
-        int[] sortScores = new int[moves.Length];
+        var moves = _board.GetLegalMoves(qSearch);
+        var sortScores = new int[moves.Length];
         
         if (!qSearch && moves.Length == 0)
         {
-            if (board.IsInCheck())
+            if (_board.IsInCheck())
                 return -mateScore + plyFromRoot;
             return 0;
         }
         
         // Move ordering based on principal variation
-        for (i = 0; i < moves.Length; i++)
+        foreach (Move move in moves)
         {
-            Move move = moves[i];
-            if (ttHit && entry.move == move)
-                sortScores[i] = 100000;
-            else if (move.IsCapture)
-                sortScores[i] = 100 * ((int)move.CapturePieceType - (int)move.MovePieceType);
+            sortScores[i++] = ttHit && entry.move == move ? 100000 :
+                move.IsCapture ? 100 * ((int)move.CapturePieceType - (int)move.MovePieceType) : 0;
         }
 
         Array.Sort(sortScores, moves);
         foreach (Move move in moves)
         {
             // Negamax a/b search 
-            board.MakeMove(move);
+            _board.MakeMove(move);
             
-            if (board.IsRepeatedPosition())
+            if (_board.IsRepeatedPosition())
                 score = 0;
             else 
-                score = -Search(board, depth - 1, plyFromRoot + 1, -beta, -alpha);
+                score = -Search(depth - 1, plyFromRoot + 1, -beta, -alpha);
             
-            board.UndoMove(move);
+            _board.UndoMove(move);
             
             if (score > bestScore)
             {
@@ -138,10 +137,7 @@ public class MyBot : IChessBot
 
             // Beta cutoff
             if (alpha >= beta)
-            { // #DEBUG
-                _betaCutoffs++; // #DEBUG
                 break;
-            } // #DEBUG
         }
 
         // Save to tt table only if valid move
@@ -161,7 +157,7 @@ public class MyBot : IChessBot
     }
 
     public //#DEBUG
-    int Evaluate(Board board)
+    int Evaluate()
     {
         int phase = 0, mid = 0, end = 0;
 
@@ -170,16 +166,16 @@ public class MyBot : IChessBot
             for (int pieceType = 1; pieceType <= 6; pieceType++)
             {
                 Square square;
-                ulong bb = board.GetPieceBitboard((PieceType) pieceType, white);
+                ulong bb = _board.GetPieceBitboard((PieceType) pieceType, white);
                 while (bb != 0)
                 {
                     square = new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref bb));
                     if(!white)
                         square = new Square(square.File, 7 - square.Rank);
-                    int pieceSquareValue = GetPieceSquareValue(pieceType - 1, square.Index);
+                    int pieceSquareValue = GetPieceSquareValue(pieceType - 1, square.Index),
                     // Pack piece values into single number - saves 4 tokens over array
                     // int[] _pieceValues = { 0, 100, 300, 300, 500, 900, 0 };
-                    int value = (0x0953310 >> pieceType * 4 & 0xf) * 100;
+                    value = (0x0953310 >> pieceType * 4 & 0xf) * 100;
                     mid += pieceSquareValue + value;
                     end += (pieceType == 6 ? GetPieceSquareValue(6, square.Index) : pieceSquareValue) + value;
                     // pack phase values into single number - saves 7 tokens over array
@@ -192,6 +188,6 @@ public class MyBot : IChessBot
             end = -end;
         }
 
-        return (board.IsWhiteToMove ? 1 : -1) * (mid * phase + end * (24 - phase)) / 24;
+        return (_board.IsWhiteToMove ? 1 : -1) * (mid * phase + end * (24 - phase)) / 24;
     }
 }

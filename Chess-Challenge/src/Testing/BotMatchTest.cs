@@ -186,7 +186,8 @@ public class BotMatchTest(BotTester botTester) : TestSuite(botTester)
         
         SPRT.SPRTOptions options = new SPRT.SPRTOptions
         {
-            Elo1 = 10
+            Elo0 = -1.5,
+            Elo1 = 4
         };
         
         string status = $"Running SPRT Test... TC: ({TimeControlToString(timeControl)}) Options: {options}";
