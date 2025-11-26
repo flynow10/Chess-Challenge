@@ -47,7 +47,7 @@ public class MyBot : IChessBot
             int score = Search(_searchDepth, 0, -9999999, 9999999);
             if (OutOfTime)
                 break;
-            Logger.WriteLine(Logger.LogLevel.Full, $"info depth {_searchDepth} score {score} ttHits {_ttHits} nodes {_nodes} time {timer.MillisecondsElapsedThisTurn}"); // #DEBUG
+            Logger.WriteLine(Logger.LogLevel.Full, $"info depth {_searchDepth} score {score} ttHits {_ttHits} nodes {_nodes} time {timer.MillisecondsElapsedThisTurn} nps {_nodes*1000/Max(timer.MillisecondsElapsedThisTurn,1)}"); // #DEBUG
             _pv = _currSearch;
         }
         Logger.WriteLine(Logger.LogLevel.PV, $"PV: {_pv} Depth: {_searchDepth}"); // #DEBUG
@@ -104,10 +104,8 @@ public class MyBot : IChessBot
         
         // Move ordering based on principal variation
         foreach (Move move in moves)
-        {
             sortScores[i++] = ttHit && entry.move == move ? 100000 :
                 move.IsCapture ? 100 * ((int)move.CapturePieceType - (int)move.MovePieceType) : 0;
-        }
 
         Array.Sort(sortScores, moves);
         foreach (Move move in moves)
